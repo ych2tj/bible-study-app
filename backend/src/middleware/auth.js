@@ -1,10 +1,11 @@
 // Simple password authentication middleware
-const AUTH_PASSWORD = process.env.AUTH_PASSWORD;
+// Use a getter function to always get the current password from process.env
+const getAuthPassword = () => process.env.AUTH_PASSWORD;
 
 export function verifyPassword(req, res, next) {
   const { password } = req.body;
 
-  if (password === AUTH_PASSWORD) {
+  if (password === getAuthPassword()) {
     return next();
   }
 
@@ -14,7 +15,7 @@ export function verifyPassword(req, res, next) {
 export function checkAuth(req, res, next) {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || authHeader !== `Bearer ${AUTH_PASSWORD}`) {
+  if (!authHeader || authHeader !== `Bearer ${getAuthPassword()}`) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

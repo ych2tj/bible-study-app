@@ -40,10 +40,12 @@ cd frontend
 npm run dev
 ```
 
-Or use the convenience script:
+Or use the convenience script (requires `.env` file):
 ```bash
-./start.sh
+./start.sh  # Loads .env and starts both servers
 ```
+
+**IMPORTANT**: The `start.sh` script is git-ignored because it displays the password. The `.env` file must exist with `AUTH_PASSWORD=your_password` for the backend to authenticate properly.
 
 ### Database Operations
 
@@ -73,16 +75,24 @@ npm run build  # Output to frontend/dist/
 - Database initialization runs on import of any route
 
 **Route Organization**:
-- `routes/auth.js` - Password verification (POST /api/auth/login)
+- `routes/auth.js` - Password verification (POST /api/auth/login) and password change (POST /api/auth/change-password)
 - `routes/courses.js` - Full CRUD for courses
 - `routes/verses.js` - Verse CRUD + bulk operations
 - `routes/studyContent.js` - Study content per course (one-to-one relationship)
 
 **Authentication Pattern**:
 - Simple Bearer token in Authorization header
-- Token = the actual password (stored in `middleware/auth.js`)
+- Token = the actual password
+- `middleware/auth.js` uses `getAuthPassword()` getter function to read `process.env.AUTH_PASSWORD` dynamically (NOT cached at startup)
+- This allows password changes to take effect immediately without server restart
 - Public endpoints: GET courses, verses, study content
 - Protected endpoints: All POST/PUT/DELETE operations
+
+**Password Change Mechanism**:
+- POST `/api/auth/change-password` endpoint writes new password to `.env` file
+- Updates `process.env.AUTH_PASSWORD` for current process
+- Auth middleware uses getter function, so new password works immediately
+- Frontend updates auth token automatically after password change
 
 **Database Pattern**:
 ```javascript
@@ -100,10 +110,18 @@ Router
 └── Layout (navigation + language switcher)
     ├── Route "/" → StudyPage
     └── Route "/edit" → EditPage
-                        └── CourseEditor
-                            ├── VerseEditor
-                            └── StudyContentEditor
+                        ├── CourseEditor
+                        │   ├── VerseEditor
+                        │   └── StudyContentEditor
+                        └── Password Change Section (below course content)
 ```
+
+**Edit Page Password Change UI**:
+- Located at bottom of EditPage (after CourseEditor)
+- Opens modal dialog for password change
+- Validates password confirmation
+- Shows success/error messages
+- New password takes effect immediately
 
 **State Management Pattern**:
 - No global state library (Redux, Context, etc.)
@@ -185,7 +203,12 @@ pkill -f "vite"
 
 **Backend port**: `backend/src/server.js` → `const PORT = process.env.PORT || 3001`
 
-**Auth password**: Set in `.env` file → `AUTH_PASSWORD=your_password`
+**Auth password**: **REQUIRED** - Must be set in `.env` file in project root → `AUTH_PASSWORD=your_password`
+- The `.env` file is git-ignored for security
+- Backend reads `process.env.AUTH_PASSWORD` at runtime via getter function
+- `start.sh` loads and exports this variable before starting servers
+- Password can be changed via Edit Page UI - new password takes effect immediately (no restart needed)
+- Password changes persist to `.env` file
 
 **Frontend API URL**: `frontend/src/services/api.ts` → `const API_BASE_URL`
 
@@ -203,14 +226,27 @@ courses (1) ──< verses (many)
 
 **Verse ordering**: `order_index` field determines display sequence (set to `verses.length` when adding new)
 
+## Environment Setup
+
+**Required Files** (git-ignored):
+- `.env` - Contains `AUTH_PASSWORD=your_password` (backend authentication)
+- `start.sh` - Startup script (displays password, hence git-ignored)
+
+**First-time setup**:
+1. Create `.env` file in project root with `AUTH_PASSWORD=your_password`
+2. Run `cd backend && npm install`
+3. Run `cd frontend && npm install`
+4. Database auto-creates on first backend startup
+
 ## Testing the Application
 
-1. Start both servers
+1. Start both servers (ensure `.env` exists first)
 2. Navigate to `http://localhost:5173/` (Study Page)
 3. Expect empty state: "No courses available"
 4. Navigate to `/edit`, login with password from .env file
 5. Create course → Add verses → Add study content
 6. Return to Study Page → Click course → Click verse to see explanation
+7. (Optional) Test password change: Scroll to bottom of Edit Page → Click "Change Password" → Enter and confirm new password → Refresh page and login with new password
 
 ## Files to Reference
 
