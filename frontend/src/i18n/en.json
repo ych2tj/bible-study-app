@@ -1,0 +1,45 @@
+{
+  "nav": {
+    "study": "Study",
+    "edit": "Edit"
+  },
+  "auth": {
+    "password": "Password",
+    "login": "Login",
+    "enterPassword": "Enter password to access edit page",
+    "invalidPassword": "Invalid password"
+  },
+  "course": {
+    "title": "Courses",
+    "name": "Course Name",
+    "create": "Create Course",
+    "edit": "Edit Course",
+    "delete": "Delete Course",
+    "save": "Save Course",
+    "noCourses": "No courses available",
+    "selectCourse": "Select a course to view"
+  },
+  "verse": {
+    "title": "Bible Verses",
+    "gospel": "Gospel",
+    "chapter": "Chapter",
+    "verseNumber": "Verse Number",
+    "content": "Verse Content",
+    "explanation": "Verse Explanation",
+    "add": "Add Verse",
+    "delete": "Delete Verse"
+  },
+  "study": {
+    "content": "Study Content/References",
+    "versesExplanation": "Verses Explanation",
+    "clickVerse": "Click a verse to see explanation"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "error": "Error occurred"
+  }
+}

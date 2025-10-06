@@ -1,0 +1,19 @@
+{
+  "name": "bible-study-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Bible Study Group Teaching Document Management",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "keywords": ["bible", "study", "api"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "better-sqlite3": "^9.2.2"
+  }
+}

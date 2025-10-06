@@ -1,0 +1,45 @@
+{
+  "nav": {
+    "study": "学习",
+    "edit": "编辑"
+  },
+  "auth": {
+    "password": "密码",
+    "login": "登录",
+    "enterPassword": "输入密码以访问编辑页面",
+    "invalidPassword": "密码错误"
+  },
+  "course": {
+    "title": "课程",
+    "name": "课程名称",
+    "create": "创建课程",
+    "edit": "编辑课程",
+    "delete": "删除课程",
+    "save": "保存课程",
+    "noCourses": "暂无课程",
+    "selectCourse": "选择一个课程查看"
+  },
+  "verse": {
+    "title": "圣经经文",
+    "gospel": "福音书",
+    "chapter": "章",
+    "verseNumber": "节",
+    "content": "经文内容",
+    "explanation": "经文解释",
+    "add": "添加经文",
+    "delete": "删除经文"
+  },
+  "study": {
+    "content": "学习内容/参考资料",
+    "versesExplanation": "经文解释",
+    "clickVerse": "点击经文查看解释"
+  },
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "edit": "编辑",
+    "delete": "删除",
+    "loading": "加载中...",
+    "error": "发生错误"
+  }
+}
