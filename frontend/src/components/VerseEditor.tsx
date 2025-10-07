@@ -137,7 +137,7 @@ export default function VerseEditor({ courseId, verses, onUpdate }: VerseEditorP
 
       {/* Verses List */}
       <div className="space-y-2">
-        <h4 className="font-semibold mb-2">Added Verses ({verses.length})</h4>
+        <h4 className="font-semibold mb-2">{t('verse.addedVerses')} ({verses.length})</h4>
         {verses.length === 0 ? (
           <p className="text-gray-500 text-sm">No verses added yet</p>
         ) : (
@@ -153,7 +153,7 @@ export default function VerseEditor({ courseId, verses, onUpdate }: VerseEditorP
                 <div className="text-sm mb-1">{verse.content}</div>
                 {verse.explanation && (
                   <div className="text-sm text-gray-600 italic">
-                    Explanation: {verse.explanation}
+                    {t('verse.explanationLabel')}: {verse.explanation}
                   </div>
                 )}
               </div>

@@ -137,7 +137,7 @@ export default function StudyPage() {
                 )}
                 {selectedCourse.studyContent?.reference_text && (
                   <div>
-                    <h4 className="font-semibold mb-2">References:</h4>
+                    <h4 className="font-semibold mb-2">{t('study.references')}:</h4>
                     <p className="whitespace-pre-wrap text-gray-700">
                       {selectedCourse.studyContent.reference_text}
                     </p>

@@ -44,7 +44,7 @@ export default function StudyContentEditor({
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Study Content</label>
+          <label className="block text-sm font-medium mb-1">{t('study.studyContent')}</label>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -55,7 +55,7 @@ export default function StudyContentEditor({
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">References</label>
+          <label className="block text-sm font-medium mb-1">{t('study.references')}</label>
           <textarea
             value={references}
             onChange={(e) => setReferences(e.target.value)}

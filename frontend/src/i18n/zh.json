@@ -33,12 +33,16 @@
     "content": "经文内容",
     "explanation": "经文解释",
     "add": "添加经文",
-    "delete": "删除经文"
+    "delete": "删除经文",
+    "addedVerses": "已添加的经文",
+    "explanationLabel": "解释"
   },
   "study": {
     "content": "学习内容/参考资料",
     "versesExplanation": "经文解释",
-    "clickVerse": "点击经文查看解释"
+    "clickVerse": "点击经文查看解释",
+    "references": "参考资料",
+    "studyContent": "学习内容"
   },
   "common": {
     "save": "保存",
