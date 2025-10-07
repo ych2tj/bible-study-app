@@ -15,7 +15,7 @@ export default function Layout({ children }: LayoutProps) {
       <nav className="bg-white shadow-md">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
-            <div className="flex space-x-4">
+            <div className="flex">
               <Link
                 to="/"
                 className={`px-4 py-2 rounded transition ${
@@ -28,6 +28,7 @@ export default function Layout({ children }: LayoutProps) {
               </Link>
               <Link
                 to="/edit"
+                style={{ marginLeft: '5px' }}
                 className={`px-4 py-2 rounded transition ${
                   location.pathname === '/edit'
                     ? 'bg-blue-600 text-white'
