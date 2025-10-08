@@ -35,7 +35,8 @@
     "add": "添加经文",
     "delete": "删除经文",
     "addedVerses": "已添加的经文",
-    "explanationLabel": "解释"
+    "explanationLabel": "解释",
+    "noVersesYet": "暂无经文"
   },
   "study": {
     "content": "学习内容/参考资料",

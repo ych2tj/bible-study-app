@@ -139,7 +139,7 @@ export default function VerseEditor({ courseId, verses, onUpdate }: VerseEditorP
       <div className="space-y-2">
         <h4 className="font-semibold mb-2">{t('verse.addedVerses')} ({verses.length})</h4>
         {verses.length === 0 ? (
-          <p className="text-gray-500 text-sm">No verses added yet</p>
+          <p className="text-gray-500 text-sm">{t('verse.noVersesYet')}</p>
         ) : (
           verses.map((verse) => (
             <div

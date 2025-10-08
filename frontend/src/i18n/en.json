@@ -35,7 +35,8 @@
     "add": "Add Verse",
     "delete": "Delete Verse",
     "addedVerses": "Added Verses",
-    "explanationLabel": "Explanation"
+    "explanationLabel": "Explanation",
+    "noVersesYet": "No verses added yet"
   },
   "study": {
     "content": "Study Content/References",

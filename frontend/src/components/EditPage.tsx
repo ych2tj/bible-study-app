@@ -74,31 +74,33 @@ export default function EditPage() {
           <p className="text-gray-600 mb-6 text-center">{t('auth.enterPassword')}</p>
 
           <form onSubmit={handleLogin} className="space-y-4">
-            <div>
+            <div className="flex flex-col items-center">
               <label className="block text-sm font-medium mb-2">{t('auth.password')}</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-64 px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder={t('auth.password')}
                 required
               />
             </div>
 
             {error && (
-              <div className="bg-red-50 text-red-600 px-4 py-2 rounded">
+              <div className="bg-red-50 text-red-600 px-4 py-2 rounded text-center">
                 {error}
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition disabled:opacity-50"
-            >
-              {loading ? t('common.loading') : t('auth.login')}
-            </button>
+            <div className="flex justify-center">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-64 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition disabled:opacity-50"
+              >
+                {loading ? t('common.loading') : t('auth.login')}
+              </button>
+            </div>
           </form>
         </div>
       </div>
