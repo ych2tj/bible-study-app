@@ -51,6 +51,8 @@
     "edit": "编辑",
     "delete": "删除",
     "loading": "加载中...",
-    "error": "发生错误"
+    "error": "发生错误",
+    "back": "返回",
+    "appTitle": "圣经学习管理"
   }
 }
