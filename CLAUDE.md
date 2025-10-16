@@ -199,6 +199,10 @@ pkill -f "vite"
 **Cause**: Backend not running or frontend API_BASE_URL misconfigured
 **Check**: `frontend/src/services/api.ts` → `const API_BASE_URL = 'http://localhost:3001/api'`
 
+### Issue: CSS styles not loading
+**Cause**: Incorrect Tailwind CSS import syntax (using v3 syntax with v4)
+**Solution**: Ensure `frontend/src/index.css` has `@import "tailwindcss";` at the top (NOT `@tailwind base/components/utilities`)
+
 ## Configuration Points
 
 **Backend port**: `backend/src/server.js` → `const PORT = process.env.PORT || 3001`
@@ -212,7 +216,11 @@ pkill -f "vite"
 
 **Frontend API URL**: `frontend/src/services/api.ts` → `const API_BASE_URL`
 
-**Tailwind PostCSS**: `frontend/postcss.config.js` uses `@tailwindcss/postcss` (NOT `tailwindcss` directly)
+**Tailwind CSS v4**: This project uses Tailwind CSS v4 with the new configuration system:
+- `frontend/src/index.css` uses `@import "tailwindcss";` (NOT the old `@tailwind` directives)
+- `frontend/postcss.config.js` uses `@tailwindcss/postcss` plugin
+- No `tailwind.config.js` file is needed for v4 (CSS-based configuration)
+- **CRITICAL**: Never change `@import "tailwindcss";` to `@tailwind base/components/utilities` - this will break CSS generation
 
 ## Data Model Relationships
 
