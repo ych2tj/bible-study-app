@@ -1,13 +1,20 @@
 {
   "nav": {
     "study": "Study",
-    "edit": "Edit"
+    "edit": "Edit",
+    "courses": "Courses",
+    "admin": "Admin",
+    "branding": "Bible Study Fellowship"
   },
   "auth": {
     "password": "Password",
+    "username": "Username",
     "login": "Login",
+    "logout": "Logout",
     "enterPassword": "Enter password to access edit page",
     "invalidPassword": "Invalid password",
+    "invalidCredentials": "Invalid username or password",
+    "adminLogin": "Admin Login",
     "changePassword": "Change Password",
     "newPassword": "New Password",
     "confirmPassword": "Confirm New Password",
@@ -19,31 +26,43 @@
     "title": "Courses",
     "name": "Course Name",
     "create": "Create Course",
+    "createNew": "Create New Course",
     "edit": "Edit Course",
     "delete": "Delete Course",
     "save": "Save Course",
     "noCourses": "No courses available",
-    "selectCourse": "Select a course to view"
+    "selectCourse": "Select a course to begin your study journey",
+    "studyJourney": "Select a course to begin your study journey",
+    "pageTitle": "Bible Study Courses",
+    "startCourse": "Start Course",
+    "verses": "verses",
+    "createdOn": "Created on",
+    "courseManagement": "Course Management",
+    "verseManagement": "Verse & Content Management"
   },
   "verse": {
     "title": "Bible Verses",
-    "gospel": "Gospel",
+    "gospel": "Gospel/Book",
     "chapter": "Chapter",
-    "verseNumber": "Verse Number",
+    "verseNumber": "Verse",
     "content": "Verse Content",
     "explanation": "Verse Explanation",
     "add": "Add Verse",
+    "addNew": "Add New Verse",
     "delete": "Delete Verse",
     "addedVerses": "Added Verses",
-    "explanationLabel": "Explanation",
-    "noVersesYet": "No verses added yet"
+    "explanationLabel": "Explanation (Optional)",
+    "noVersesYet": "No verses added yet",
+    "pleaseSelect": "Please select a course to manage verses and study content."
   },
   "study": {
     "content": "Study Content/References",
-    "versesExplanation": "Verses Explanation",
-    "clickVerse": "Click a verse to see explanation",
+    "versesExplanation": "Verse Explanation",
+    "clickVerse": "Click on any verse number above to see its explanation here.",
     "references": "References",
-    "studyContent": "Study Content"
+    "studyContent": "Study Content",
+    "studyNotes": "Study Notes",
+    "additionalResources": "Additional Resources:"
   },
   "common": {
     "save": "Save",
@@ -53,6 +72,13 @@
     "loading": "Loading...",
     "error": "Error occurred",
     "back": "Back",
-    "appTitle": "Bible Study Management"
+    "appTitle": "Bible Study Management",
+    "adminDashboard": "Admin Dashboard",
+    "confirm": "Confirm",
+    "ok": "OK",
+    "success": "Success",
+    "confirmDelete": "Confirm Deletion",
+    "areYouSure": "Are you sure?",
+    "deleteWarning": "This action cannot be undone."
   }
 }

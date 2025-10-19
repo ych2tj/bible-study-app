@@ -18,7 +18,12 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? false  // Configure production origins as needed
+    : 'http://localhost:5173',  // Restrict to Vite dev server in development
+  credentials: true
+}));
 app.use(express.json());
 
 // Routes

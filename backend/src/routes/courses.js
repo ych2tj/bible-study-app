@@ -30,7 +30,7 @@ router.get('/:id', (req, res) => {
     res.json({
       ...course,
       verses: verses || [],
-      studyContent: studyContent || { content: '', references: '' }
+      studyContent: studyContent || { content: '', reference_text: '' }
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

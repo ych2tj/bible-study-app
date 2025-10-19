@@ -12,37 +12,44 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-md">
-        <div className="container mx-auto px-4 py-4">
+      <nav className="bg-white shadow-sm border-b border-gray-200">
+        <div className="container mx-auto px-6 py-3">
           <div className="flex justify-between items-center">
-            <div className="flex">
+            {/* Left: Branding */}
+            <div className="text-xl font-bold text-gray-800">
+              {t('nav.branding')}
+            </div>
+
+            {/* Center: Navigation Links */}
+            <div className="flex gap-8">
               <Link
                 to="/"
-                className={`px-4 py-2 rounded transition ${
+                className={`text-base font-medium transition ${
                   location.pathname === '/'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'text-blue-600 border-b-2 border-blue-600 pb-1'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                {t('nav.study')}
+                {t('nav.courses')}
               </Link>
               <Link
                 to="/edit"
-                style={{ marginLeft: '5px' }}
-                className={`px-4 py-2 rounded transition ${
+                className={`text-base font-medium transition ${
                   location.pathname === '/edit'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'text-blue-600 border-b-2 border-blue-600 pb-1'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                {t('nav.edit')}
+                {t('nav.admin')}
               </Link>
             </div>
+
+            {/* Right: Language Switcher */}
             <LanguageSwitcher />
           </div>
         </div>
       </nav>
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-6 py-8">
         {children}
       </main>
     </div>

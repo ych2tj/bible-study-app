@@ -1,5 +1,5 @@
 import express from 'express';
-import { verifyPassword, checkAuth } from '../middleware/auth.js';
+import { verifyCredentials, checkAuth } from '../middleware/auth.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -9,8 +9,8 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
-// Login endpoint
-router.post('/login', verifyPassword, (req, res) => {
+// Login endpoint - now requires both username and password
+router.post('/login', verifyCredentials, (req, res) => {
   res.json({ success: true, message: 'Authentication successful' });
 });
 

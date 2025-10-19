@@ -71,7 +71,7 @@ npm run build  # Output to frontend/dist/
 
 **Server Entry**: `backend/src/server.js`
 - Imports all route modules
-- Configures CORS (allows all origins)
+- Configures CORS (restricted to `http://localhost:5173` in development, production origins need configuration)
 - Database initialization runs on import of any route
 
 **Route Organization**:
@@ -81,9 +81,10 @@ npm run build  # Output to frontend/dist/
 - `routes/studyContent.js` - Study content per course (one-to-one relationship)
 
 **Authentication Pattern**:
-- Simple Bearer token in Authorization header
-- Token = the actual password
-- `middleware/auth.js` uses `getAuthPassword()` getter function to read `process.env.AUTH_PASSWORD` dynamically (NOT cached at startup)
+- Simple username/password authentication with Bearer token
+- Login requires both `AUTH_USERNAME` and `AUTH_PASSWORD` from `.env`
+- Token = the actual password (used as Bearer token after login)
+- `middleware/auth.js` uses getter functions (`getAuthUsername()` and `getAuthPassword()`) to read from `process.env` dynamically (NOT cached at startup)
 - This allows password changes to take effect immediately without server restart
 - Public endpoints: GET courses, verses, study content
 - Protected endpoints: All POST/PUT/DELETE operations
@@ -127,6 +128,7 @@ Router
 - No global state library (Redux, Context, etc.)
 - Each page component fetches its own data via `services/api.ts`
 - Parent components pass refresh callbacks to children for data invalidation
+- Course list components (`StudyPage`, `CourseEditor`) load verse counts dynamically for each course using parallel API calls
 
 **API Client** (`services/api.ts`):
 - Centralized HTTP client using native `fetch`
@@ -140,21 +142,19 @@ Router
 - Usage: `const { t } = useTranslation()` hook, then `t('nav.study')`
 - Language switching: `i18n.changeLanguage('en' | 'zh')`
 
-### Critical Database-Frontend Mapping
+### Database-Frontend Field Mapping
 
-**IMPORTANT**: The database field is `reference_text`, but the frontend API still sends/receives `references`. The backend handles this mapping:
+The database uses `reference_text` field, and the frontend now correctly uses this field name throughout:
 
-```javascript
-// Backend POST /api/study-content
-const { references } = req.body;  // Frontend sends "references"
-// But SQL uses: INSERT INTO study_content (..., reference_text) VALUES (..., ?)
-```
-
-Frontend types (`types/index.ts`) use:
 ```typescript
+// Frontend types (types/index.ts)
 export type StudyContent = {
   reference_text: string;  // Matches actual DB column
 }
+
+// Backend API (routes/studyContent.js)
+const { references } = req.body;  // Frontend sends "references"
+// Mapped to: reference_text in SQL queries
 ```
 
 ## Common Development Patterns
@@ -177,6 +177,32 @@ export type StudyContent = {
 ### Component File Naming
 All React components use `.tsx` extension (TypeScript + JSX)
 
+### Reusable Dialog Components
+
+The application uses custom dialog components instead of browser `alert()` and `confirm()`:
+
+**ConfirmDialog** (`components/ConfirmDialog.tsx`):
+- Used for destructive actions (delete confirmations)
+- Props: `isOpen`, `title`, `message`, `onConfirm`, `onCancel`, `variant` ('danger' | 'warning' | 'info')
+- Supports i18n translations
+
+**AlertDialog** (`components/AlertDialog.tsx`):
+- Used for success/error/info messages
+- Props: `isOpen`, `title`, `message`, `onClose`, `variant` ('success' | 'error' | 'info')
+- Auto-dismissible with close button
+
+Usage pattern:
+```typescript
+const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+const [alert, setAlert] = useState<{title: string; message: string; variant: 'success' | 'error' | 'info'} | null>(null);
+
+// Trigger confirmation
+<button onClick={() => setConfirmDelete(itemId)}>Delete</button>
+
+// Show alert
+setAlert({ title: t('common.success'), message: 'Saved!', variant: 'success' });
+```
+
 ## Known Issues & Workarounds
 
 ### Issue: Blank page on frontend load
@@ -196,8 +222,11 @@ pkill -f "vite"
 ```
 
 ### Issue: CORS errors
-**Cause**: Backend not running or frontend API_BASE_URL misconfigured
-**Check**: `frontend/src/services/api.ts` → `const API_BASE_URL = 'http://localhost:3001/api'`
+**Cause**: Backend not running, frontend API_BASE_URL misconfigured, or CORS origin mismatch
+**Check**:
+- `frontend/src/services/api.ts` → `const API_BASE_URL = 'http://localhost:3001/api'`
+- `backend/src/server.js` → CORS origin should match frontend URL
+- Default development: Frontend must run on `http://localhost:5173`
 
 ### Issue: CSS styles not loading
 **Cause**: Incorrect Tailwind CSS import syntax (using v3 syntax with v4)
@@ -207,10 +236,14 @@ pkill -f "vite"
 
 **Backend port**: `backend/src/server.js` → `const PORT = process.env.PORT || 3001`
 
-**Auth password**: **REQUIRED** - Must be set in `.env` file in project root → `AUTH_PASSWORD=your_password`
+**Authentication credentials**: **REQUIRED** - Must be set in `.env` file in project root:
+```
+AUTH_USERNAME=your_username
+AUTH_PASSWORD=your_password
+```
 - The `.env` file is git-ignored for security
-- Backend reads `process.env.AUTH_PASSWORD` at runtime via getter function
-- `start.sh` loads and exports this variable before starting servers
+- Backend reads both `AUTH_USERNAME` and `AUTH_PASSWORD` at runtime via getter functions
+- `start.sh` loads and exports these variables before starting servers
 - Password can be changed via Edit Page UI - new password takes effect immediately (no restart needed)
 - Password changes persist to `.env` file
 
@@ -237,21 +270,25 @@ courses (1) ──< verses (many)
 ## Environment Setup
 
 **Required Files** (git-ignored):
-- `.env` - Contains `AUTH_PASSWORD=your_password` (backend authentication)
+- `.env` - Contains `AUTH_USERNAME=your_username` and `AUTH_PASSWORD=your_password` (backend authentication)
 - `start.sh` - Startup script (displays password, hence git-ignored)
 
 **First-time setup**:
-1. Create `.env` file in project root with `AUTH_PASSWORD=your_password`
+1. Create `.env` file in project root with both credentials:
+   ```
+   AUTH_USERNAME=your_username
+   AUTH_PASSWORD=your_password
+   ```
 2. Run `cd backend && npm install`
 3. Run `cd frontend && npm install`
 4. Database auto-creates on first backend startup
 
 ## Testing the Application
 
-1. Start both servers (ensure `.env` exists first)
+1. Start both servers (ensure `.env` with both AUTH_USERNAME and AUTH_PASSWORD exists first)
 2. Navigate to `http://localhost:5173/` (Study Page)
 3. Expect empty state: "No courses available"
-4. Navigate to `/edit`, login with password from .env file
+4. Navigate to `/edit`, login with username and password from .env file
 5. Create course → Add verses → Add study content
 6. Return to Study Page → Click course → Click verse to see explanation
 7. (Optional) Test password change: Scroll to bottom of Edit Page → Click "Change Password" → Enter and confirm new password → Refresh page and login with new password

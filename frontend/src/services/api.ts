@@ -24,11 +24,11 @@ const getHeaders = () => {
 
 // Auth API
 export const authAPI = {
-  login: async (password: string): Promise<boolean> => {
+  login: async (username: string, password: string): Promise<boolean> => {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ username, password }),
     });
     if (response.ok) {
       setAuthToken(password);
