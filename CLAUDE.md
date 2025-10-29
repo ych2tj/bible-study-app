@@ -15,15 +15,29 @@ This is a **dual-server architecture** requiring both frontend and backend to ru
 
 ### Key Design Decisions
 
-1. **Two-Page Application**:
-   - **Study Page (/)**: Public access for viewing courses and verses
-   - **Edit Page (/edit)**: Password-protected for course management
+1. **Three-Tab Study Page**:
+   - **Courses Tab**: Browse and select courses with metadata (date, time, leader)
+   - **Schedule Tab**: View upcoming course schedule (auto-filters past dates)
+   - Both tabs accessible from Study Page when no course is selected
 
-2. **Interactive Verse System**: Clicking a verse in Study Page dynamically displays its explanation in a separate box below
+2. **Dual View Modes** (Study Page):
+   - **PC Mode**: Verse explanations in separate card below verses, resizable verses card (drag bottom edge)
+   - **Mobile Mode**: Inline accordion-style explanations (click verse to expand/collapse)
+   - View preference saved to localStorage
 
-3. **Database Field Naming**: The `study_content` table uses `reference_text` (NOT `references`) because "references" is a SQL reserved keyword
+3. **Course Visibility System**:
+   - Each course has a `visible` field (1=visible, 0=hidden)
+   - Study Page only shows visible courses
+   - Edit Page shows all courses (with visibility toggle button)
 
-4. **TypeScript Import Pattern**: Always use `import type { ... } from '../types'` syntax when importing TypeScript types. Regular imports cause Vite module resolution errors.
+4. **Schedule Auto-Population**:
+   - Schedule items can be manually created OR auto-populated from courses
+   - Auto-populated items sync bi-directionally with linked courses
+   - `is_manual` field distinguishes entry types (0=auto, 1=manual)
+
+5. **Database Field Naming**: The `study_content` table uses `reference_text` (NOT `references`) because "references" is a SQL reserved keyword
+
+6. **TypeScript Import Pattern**: Always use `import type { ... } from '../types'` syntax when importing TypeScript types. Regular imports cause Vite module resolution errors.
 
 ## Development Commands
 
@@ -76,9 +90,20 @@ npm run build  # Output to frontend/dist/
 
 **Route Organization**:
 - `routes/auth.js` - Password verification (POST /api/auth/login) and password change (POST /api/auth/change-password)
-- `routes/courses.js` - Full CRUD for courses
-- `routes/verses.js` - Verse CRUD + bulk operations
+- `routes/courses.js` - Full CRUD for courses with new fields (course_date, course_time, leader, visible)
+  - GET `/api/courses` - Returns only visible courses (for Study Page)
+  - GET `/api/courses/all` - Returns all courses including hidden (for Edit Page, auth required)
+- `routes/verses.js` - Verse CRUD + bulk operations + inline editing
 - `routes/studyContent.js` - Study content per course (one-to-one relationship)
+- `routes/schedule.js` - Schedule management with 8 endpoints:
+  - GET `/api/schedule` - Visible schedules only (public)
+  - GET `/api/schedule/all` - All schedules including hidden (auth required)
+  - POST `/api/schedule` - Create schedule item
+  - PUT `/api/schedule/:id` - Update schedule item
+  - DELETE `/api/schedule/:id` - Delete schedule item
+  - PATCH `/api/schedule/:id/visibility` - Toggle visibility
+  - POST `/api/schedule/auto-populate` - Auto-populate from courses with dates
+  - POST `/api/schedule/sync-from-courses` - Sync auto-populated items with course changes
 
 **Authentication Pattern**:
 - Simple username/password authentication with Bearer token
@@ -110,9 +135,13 @@ db.prepare('INSERT ...').run();   // Mutation
 Router
 └── Layout (navigation + language switcher)
     ├── Route "/" → StudyPage
+    │                ├── Courses Tab → Course list with metadata
+    │                └── Schedule Tab → ScheduleView
     └── Route "/edit" → EditPage
-                        ├── CourseEditor
-                        │   ├── VerseEditor
+                        ├── CourseEditor (3 tabs)
+                        │   ├── Course Tab → Course CRUD with inline editing
+                        │   ├── Verse Tab → VerseEditor (inline edit + auto-sort)
+                        │   ├── Schedule Tab → ScheduleManager
                         │   └── StudyContentEditor
                         └── Password Change Section (below course content)
 ```
@@ -129,6 +158,14 @@ Router
 - Each page component fetches its own data via `services/api.ts`
 - Parent components pass refresh callbacks to children for data invalidation
 - Course list components (`StudyPage`, `CourseEditor`) load verse counts dynamically for each course using parallel API calls
+- View mode preference (PC/Mobile) persisted to localStorage
+
+**Key Component Features**:
+- **StudyPage**: Tab navigation, view mode toggle, resizable card (PC mode), inline expansion (mobile mode)
+- **ScheduleView**: Auto-filters past dates, displays upcoming schedules with icons
+- **ScheduleManager**: Full CRUD, auto-populate button, visibility toggles, inline editing
+- **CourseEditor**: 3-tab interface (Course/Verse/Schedule), inline course editing, visibility toggles
+- **VerseEditor**: Inline editing forms, automatic verse sorting by chapter/verse number
 
 **API Client** (`services/api.ts`):
 - Centralized HTTP client using native `fetch`
@@ -174,8 +211,27 @@ const { references } = req.body;  // Frontend sends "references"
 2. Add same key-value to `frontend/src/i18n/en.json`
 3. Use in component: `{t('your.new.key')}`
 
-### Component File Naming
+### Component File Naming and Location
 All React components use `.tsx` extension (TypeScript + JSX)
+
+**Component Organization**:
+- **Page Components** (in `frontend/src/components/`):
+  - `StudyPage.tsx` - Main public page with courses and schedule tabs
+  - `EditPage.tsx` - Admin page with authentication
+- **Editor Components** (in `frontend/src/components/`):
+  - `CourseEditor.tsx` - Tabbed editor for courses, verses, and schedule
+  - `VerseEditor.tsx` - Verse management with inline editing
+  - `StudyContentEditor.tsx` - Study notes and references editor
+  - `ScheduleManager.tsx` - Schedule CRUD with auto-populate
+- **View Components** (in `frontend/src/components/`):
+  - `ScheduleView.tsx` - Public schedule display
+- **Utility Components** (in `frontend/src/components/`):
+  - `ConfirmDialog.tsx` - Reusable confirmation dialogs
+  - `AlertDialog.tsx` - Reusable alert/notification dialogs
+  - `Layout.tsx` - App shell with navigation
+  - `LanguageSwitcher.tsx` - i18n language toggle
+
+Note: Despite their role as "pages", `StudyPage.tsx` and `EditPage.tsx` are located in the `components/` folder, not a separate `pages/` folder.
 
 ### Reusable Dialog Components
 
@@ -249,10 +305,14 @@ AUTH_PASSWORD=your_password
 
 **Frontend API URL**: `frontend/src/services/api.ts` → `const API_BASE_URL`
 
-**Tailwind CSS v4**: This project uses Tailwind CSS v4 with the new configuration system:
+**Tailwind CSS v4**: This project uses Tailwind CSS v4 with hybrid configuration:
 - `frontend/src/index.css` uses `@import "tailwindcss";` (NOT the old `@tailwind` directives)
 - `frontend/postcss.config.js` uses `@tailwindcss/postcss` plugin
-- No `tailwind.config.js` file is needed for v4 (CSS-based configuration)
+- `frontend/tailwind.config.js` exists for custom theme extensions (optional with v4):
+  - 4 Christian-inspired color palettes: `sacred`, `divine`, `grace`, `heaven`
+  - Custom fonts: Crimson Text (serif), Cinzel (display), Inter (sans)
+  - Custom gradients: sacred-gradient, divine-gradient, heaven-radial
+  - Custom shadows: sacred, divine, soft
 - **CRITICAL**: Never change `@import "tailwindcss";` to `@tailwind base/components/utilities` - this will break CSS generation
 
 ## Data Model Relationships
@@ -260,12 +320,26 @@ AUTH_PASSWORD=your_password
 ```
 courses (1) ──< verses (many)
    │
-   └──── study_content (1:1, unique constraint on course_id)
+   ├──── study_content (1:1, unique constraint on course_id)
+   │
+   └──── schedule (0..1, optional link via course_id, ON DELETE SET NULL)
 ```
 
-**Cascade deletes**: Deleting a course removes all associated verses and study_content
+**Core Tables**:
+- `courses`: id, name, course_date, course_time, leader, visible, created_at, updated_at
+- `verses`: id, course_id, gospel, chapter, verse_number, content, explanation, order_index
+- `study_content`: id, course_id, content, reference_text
+- `schedule`: id, course_date, course_time, course_name, leader, visible, is_manual, course_id, created_at, updated_at
 
-**Verse ordering**: `order_index` field determines display sequence (set to `verses.length` when adding new)
+**Cascade deletes**: Deleting a course removes all associated verses and study_content. Schedule items with course_id link get set to NULL (become manual entries).
+
+**Verse ordering**: Verses automatically sorted by chapter, then verse_number in UI. `order_index` field stored but not actively used for display order.
+
+**Course visibility**: Courses with `visible=0` are hidden from Study Page but visible in Edit Page.
+
+**Schedule types**:
+- Manual entries (`is_manual=1`): Created directly in Schedule Manager
+- Auto-populated entries (`is_manual=0`): Created from courses with dates, linked via `course_id`
 
 ## Environment Setup
 
@@ -287,11 +361,31 @@ courses (1) ──< verses (many)
 
 1. Start both servers (ensure `.env` with both AUTH_USERNAME and AUTH_PASSWORD exists first)
 2. Navigate to `http://localhost:5173/` (Study Page)
-3. Expect empty state: "No courses available"
-4. Navigate to `/edit`, login with username and password from .env file
-5. Create course → Add verses → Add study content
-6. Return to Study Page → Click course → Click verse to see explanation
-7. (Optional) Test password change: Scroll to bottom of Edit Page → Click "Change Password" → Enter and confirm new password → Refresh page and login with new password
+3. Test Courses Tab:
+   - Expect empty state: "No courses available"
+   - Note: Only visible courses show here
+4. Test Schedule Tab:
+   - Expect empty state: "No schedule available"
+5. Navigate to `/edit`, login with username and password from .env file
+6. Test Course Creation (Course Tab):
+   - Create course with name, date, time, leader
+   - Toggle visibility (eye icon) - course appears/disappears from Study Page
+   - Test inline editing (click edit icon)
+7. Test Verse Management (Verse Tab):
+   - Add verses with gospel, chapter, verse number, content, explanation
+   - Verify automatic sorting by chapter/verse number
+   - Test inline editing (click edit icon on each verse)
+8. Test Schedule Management (Schedule Tab):
+   - Click "Auto-populate from Courses" to create schedule from courses with dates
+   - Create manual schedule entry
+   - Toggle visibility (eye icon)
+   - Edit schedule item (syncs to linked course if auto-populated)
+9. Return to Study Page:
+   - Courses Tab: Click course → Test PC/Mobile mode toggle
+   - PC Mode: Click verse to see explanation below, drag bottom edge to resize verses card
+   - Mobile Mode: Click verse to expand inline explanation
+   - Schedule Tab: View upcoming schedule (past dates auto-hidden)
+10. (Optional) Test password change: Scroll to bottom of Edit Page → Click "Change Password" → Enter and confirm new password → Logout → Login with new password
 
 ## Files to Reference
 

@@ -4,6 +4,7 @@ import { coursesAPI } from '../services/api';
 import type { Course, CourseDetail } from '../types';
 import VerseEditor from './VerseEditor';
 import StudyContentEditor from './StudyContentEditor';
+import { ScheduleManager } from './ScheduleManager';
 import ConfirmDialog from './ConfirmDialog';
 import AlertDialog from './AlertDialog';
 
@@ -13,8 +14,13 @@ export default function CourseEditor() {
   const [coursesWithDetails, setCoursesWithDetails] = useState<Map<number, number>>(new Map());
   const [selectedCourse, setSelectedCourse] = useState<CourseDetail | null>(null);
   const [newCourseName, setNewCourseName] = useState('');
+  const [newCourseDate, setNewCourseDate] = useState('');
+  const [newCourseTime, setNewCourseTime] = useState('');
+  const [newCourseLeader, setNewCourseLeader] = useState('');
+  const [newCourseVisible, setNewCourseVisible] = useState(0);
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'course' | 'verse'>('course');
+  const [activeTab, setActiveTab] = useState<'course' | 'verse' | 'schedule'>('course');
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [alert, setAlert] = useState<{ title: string; message: string; variant: 'success' | 'error' | 'info' } | null>(null);
 
@@ -24,7 +30,7 @@ export default function CourseEditor() {
 
   const loadCourses = async () => {
     try {
-      const data = await coursesAPI.getAll();
+      const data = await coursesAPI.getAllIncludingHidden();
       setCourses(data);
 
       // Load verse counts for each course
@@ -52,11 +58,84 @@ export default function CourseEditor() {
     if (!newCourseName.trim()) return;
 
     try {
-      await coursesAPI.create(newCourseName);
+      await coursesAPI.create({
+        name: newCourseName,
+        course_date: newCourseDate || undefined,
+        course_time: newCourseTime || undefined,
+        leader: newCourseLeader || undefined,
+        visible: newCourseVisible,
+      });
       setNewCourseName('');
+      setNewCourseDate('');
+      setNewCourseTime('');
+      setNewCourseLeader('');
+      setNewCourseVisible(0);
       await loadCourses();
     } catch (error) {
       console.error('Failed to create course:', error);
+    }
+  };
+
+  const handleEditCourse = (course: Course) => {
+    setEditingCourse(course);
+  };
+
+  const handleSaveCourseEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCourse) return;
+
+    try {
+      await coursesAPI.update(editingCourse.id, {
+        name: editingCourse.name,
+        course_date: editingCourse.course_date || undefined,
+        course_time: editingCourse.course_time || undefined,
+        leader: editingCourse.leader || undefined,
+        visible: editingCourse.visible,
+      });
+      setEditingCourse(null);
+      await loadCourses();
+      setAlert({
+        title: t('common.success'),
+        message: 'Course updated successfully!',
+        variant: 'success'
+      });
+    } catch (error) {
+      console.error('Failed to update course:', error);
+      setAlert({
+        title: t('common.error'),
+        message: 'Failed to update course',
+        variant: 'error'
+      });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCourse(null);
+  };
+
+  const handleToggleVisibility = async (course: Course) => {
+    try {
+      const newVisibility = course.visible === 1 ? 0 : 1;
+      await coursesAPI.update(course.id, {
+        name: course.name,
+        course_date: course.course_date,
+        course_time: course.course_time,
+        leader: course.leader,
+        visible: newVisibility,
+      });
+      await loadCourses();
+      setAlert({
+        title: t('common.success'),
+        message: newVisibility === 1 ? 'Course is now visible on Study Page' : 'Course is now hidden from Study Page',
+        variant: 'success'
+      });
+    } catch (error) {
+      console.error('Failed to toggle visibility:', error);
+      setAlert({
+        title: t('common.error'),
+        message: 'Failed to update course visibility',
+        variant: 'error'
+      });
     }
   };
 
@@ -146,6 +225,21 @@ export default function CourseEditor() {
                 {t('course.verseManagement')}
               </div>
             </button>
+            <button
+              onClick={() => setActiveTab('schedule')}
+              className={`py-4 px-2 font-medium border-b-2 transition ${
+                activeTab === 'schedule'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                {t('schedule.management')}
+              </div>
+            </button>
           </div>
         </div>
       </div>
@@ -159,20 +253,55 @@ export default function CourseEditor() {
             {/* Create New Course Section */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold mb-4">{t('course.createNew')}</h3>
-              <form onSubmit={handleCreateCourse} className="flex gap-3">
-                <input
-                  type="text"
-                  value={newCourseName}
-                  onChange={(e) => setNewCourseName(e.target.value)}
-                  placeholder={t('course.name')}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium"
-                >
-                  {t('course.create')}
-                </button>
+              <form onSubmit={handleCreateCourse} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    type="text"
+                    value={newCourseName}
+                    onChange={(e) => setNewCourseName(e.target.value)}
+                    placeholder={t('course.name')}
+                    className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                  <input
+                    type="text"
+                    value={newCourseLeader}
+                    onChange={(e) => setNewCourseLeader(e.target.value)}
+                    placeholder={t('course.leader')}
+                    className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="date"
+                    value={newCourseDate}
+                    onChange={(e) => setNewCourseDate(e.target.value)}
+                    placeholder={t('course.date')}
+                    className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="time"
+                    value={newCourseTime}
+                    onChange={(e) => setNewCourseTime(e.target.value)}
+                    placeholder={t('course.time')}
+                    className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={newCourseVisible === 1}
+                      onChange={(e) => setNewCourseVisible(e.target.checked ? 1 : 0)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">{t('course.visible')}</span>
+                  </label>
+                  <button
+                    type="submit"
+                    className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium"
+                  >
+                    {t('course.create')}
+                  </button>
+                </div>
               </form>
             </div>
 
@@ -183,43 +312,166 @@ export default function CourseEditor() {
               ) : (
                 <div className="space-y-3">
                   {courses.map((course) => (
-                    <div
-                      key={course.id}
-                      className="flex justify-between items-center p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition cursor-pointer"
-                      onClick={() => {
-                        handleSelectCourse(course.id);
-                        setActiveTab('verse');
-                      }}
-                    >
-                      <div>
-                        <h3 className="font-bold text-lg">{course.name}</h3>
-                        <div className="flex gap-4 text-sm text-gray-500 mt-1">
-                          <span className="flex items-center gap-1">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                    <div key={course.id}>
+                      <div
+                        className="flex justify-between items-center p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition cursor-pointer"
+                        onClick={() => {
+                          handleSelectCourse(course.id);
+                          setActiveTab('verse');
+                        }}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <h3 className="font-bold text-lg">{course.name}</h3>
+                            {course.visible === 0 && (
+                              <span className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded">
+                                {t('course.hidden')}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex gap-4 text-sm text-gray-500 mt-1 flex-wrap">
+                            {course.course_date && (
+                              <span className="flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                {course.course_date}
+                              </span>
+                            )}
+                            {course.course_time && (
+                              <span className="flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {course.course_time}
+                              </span>
+                            )}
+                            {course.leader && (
+                              <span className="flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                {course.leader}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                              </svg>
+                              {coursesWithDetails.get(course.id) || 0} {t('course.verses')}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleVisibility(course);
+                            }}
+                            className={`p-2 ${course.visible === 1 ? 'text-green-600 hover:text-green-700' : 'text-gray-400 hover:text-gray-600'}`}
+                            title={course.visible === 1 ? 'Click to hide from Study Page' : 'Click to show on Study Page'}
+                          >
+                            {course.visible === 1 ? (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                              </svg>
+                            )}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditCourse(course);
+                            }}
+                            className="text-blue-600 hover:text-blue-700 p-2"
+                            title={t('common.edit')}
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
-                            {coursesWithDetails.get(course.id) || 0} {t('course.verses')}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setConfirmDelete(course.id);
+                            }}
+                            className="text-red-600 hover:text-red-700 p-2"
+                            title={t('common.delete')}
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
-                            {new Date(course.created_at).toLocaleDateString()}
-                          </span>
+                          </button>
                         </div>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setConfirmDelete(course.id);
-                        }}
-                        className="text-red-600 hover:text-red-700 p-2"
-                        title={t('common.delete')}
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+
+                      {/* Inline Edit Form */}
+                      {editingCourse?.id === course.id && (
+                        <div className="mt-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <h4 className="font-semibold mb-3 text-blue-900">{t('course.editCourseInfo')}</h4>
+                          <form onSubmit={handleSaveCourseEdit} className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <input
+                                type="text"
+                                value={editingCourse.name}
+                                onChange={(e) => setEditingCourse({ ...editingCourse, name: e.target.value })}
+                                placeholder={t('course.name')}
+                                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                              />
+                              <input
+                                type="text"
+                                value={editingCourse.leader || ''}
+                                onChange={(e) => setEditingCourse({ ...editingCourse, leader: e.target.value })}
+                                placeholder={t('course.leader')}
+                                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                              <input
+                                type="date"
+                                value={editingCourse.course_date || ''}
+                                onChange={(e) => setEditingCourse({ ...editingCourse, course_date: e.target.value })}
+                                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                              <input
+                                type="time"
+                                value={editingCourse.course_time || ''}
+                                onChange={(e) => setEditingCourse({ ...editingCourse, course_time: e.target.value })}
+                                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <label className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={editingCourse.visible === 1}
+                                  onChange={(e) => setEditingCourse({ ...editingCourse, visible: e.target.checked ? 1 : 0 })}
+                                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                                <span className="text-sm text-gray-700">{t('course.visible')}</span>
+                              </label>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={handleCancelEdit}
+                                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition"
+                                >
+                                  {t('common.cancel')}
+                                </button>
+                                <button
+                                  type="submit"
+                                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                                >
+                                  {t('common.save')}
+                                </button>
+                              </div>
+                            </div>
+                          </form>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -257,6 +509,91 @@ export default function CourseEditor() {
                 <h2 className="text-2xl font-bold">{selectedCourse.name}</h2>
               </div>
 
+              {/* Course Details Editor */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold mb-4">{t('course.editCourseInfo')}</h3>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  try {
+                    await coursesAPI.update(selectedCourse.id, {
+                      name: selectedCourse.name,
+                      course_date: selectedCourse.course_date || undefined,
+                      course_time: selectedCourse.course_time || undefined,
+                      leader: selectedCourse.leader || undefined,
+                      visible: selectedCourse.visible,
+                    });
+                    await refreshCourse();
+                    await loadCourses(); // Refresh the courses list to update visibility status
+                    setAlert({
+                      title: t('common.success'),
+                      message: 'Course details updated successfully!',
+                      variant: 'success'
+                    });
+                  } catch (error) {
+                    console.error('Failed to update course:', error);
+                    setAlert({
+                      title: t('common.error'),
+                      message: 'Failed to update course details',
+                      variant: 'error'
+                    });
+                  }
+                }} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t('course.leader')}
+                      </label>
+                      <input
+                        type="text"
+                        value={selectedCourse.leader || ''}
+                        onChange={(e) => setSelectedCourse({ ...selectedCourse, leader: e.target.value })}
+                        placeholder={t('course.leader')}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t('course.date')}
+                      </label>
+                      <input
+                        type="date"
+                        value={selectedCourse.course_date || ''}
+                        onChange={(e) => setSelectedCourse({ ...selectedCourse, course_date: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t('course.time')}
+                      </label>
+                      <input
+                        type="time"
+                        value={selectedCourse.course_time || ''}
+                        onChange={(e) => setSelectedCourse({ ...selectedCourse, course_time: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedCourse.visible === 1}
+                        onChange={(e) => setSelectedCourse({ ...selectedCourse, visible: e.target.checked ? 1 : 0 })}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">{t('course.visible')}</span>
+                    </label>
+                    <button
+                      type="submit"
+                      className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium"
+                    >
+                      {t('common.save')}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
               {/* Verse Editor */}
               <VerseEditor
                 courseId={selectedCourse.id}
@@ -273,6 +610,11 @@ export default function CourseEditor() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Schedule Management Tab */}
+      {activeTab === 'schedule' && (
+        <ScheduleManager onCoursesUpdate={loadCourses} />
       )}
 
       {/* Confirm Delete Dialog */}

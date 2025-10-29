@@ -38,7 +38,13 @@
     "verses": "节经文",
     "createdOn": "创建于",
     "courseManagement": "课程管理",
-    "verseManagement": "经文与内容管理"
+    "verseManagement": "经文与内容管理",
+    "date": "课程日期",
+    "time": "课程时间",
+    "leader": "带领人",
+    "visible": "在学习页面显示",
+    "hidden": "已隐藏",
+    "editCourseInfo": "编辑课程信息"
   },
   "verse": {
     "title": "圣经经文",
@@ -49,6 +55,7 @@
     "explanation": "经文解释",
     "add": "添加经文",
     "addNew": "添加新经文",
+    "edit": "编辑经文",
     "delete": "删除经文",
     "addedVerses": "已添加的经文",
     "explanationLabel": "解释（可选）",
@@ -62,7 +69,34 @@
     "references": "参考资料",
     "studyContent": "学习内容",
     "studyNotes": "学习笔记",
-    "additionalResources": "额外资源："
+    "additionalResources": "额外资源：",
+    "pcMode": "电脑模式",
+    "mobileMode": "手机模式",
+    "switchToPC": "切换到电脑模式",
+    "switchToMobile": "切换到手机模式"
+  },
+  "schedule": {
+    "title": "课程时间表",
+    "management": "时间表管理",
+    "date": "日期",
+    "time": "时间",
+    "courseName": "课程名称",
+    "leader": "带领人",
+    "visible": "在学习页面显示",
+    "hidden": "已隐藏",
+    "addNew": "添加新排期",
+    "edit": "编辑排期",
+    "delete": "删除排期",
+    "save": "保存",
+    "cancel": "取消",
+    "autoPopulate": "从课程自动填充",
+    "autoPopulateSuccess": "成功添加 {count} 个排期",
+    "autoPopulateEmpty": "没有新课程可添加",
+    "manualEntry": "手动添加",
+    "autoEntry": "自动添加",
+    "noSchedule": "暂无时间表",
+    "upcomingCourses": "即将开始的课程",
+    "pastCourses": "已过期的课程（已隐藏）"
   },
   "common": {
     "save": "保存",

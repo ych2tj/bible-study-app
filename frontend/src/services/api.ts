@@ -1,4 +1,4 @@
-import type { Course, CourseDetail, Verse, StudyContent } from '../types';
+import type { Course, CourseDetail, Verse, StudyContent, Schedule } from '../types';
 
 const API_BASE_URL = 'http://localhost:3001/api';
 
@@ -62,27 +62,35 @@ export const coursesAPI = {
     return response.json();
   },
 
+  getAllIncludingHidden: async (): Promise<Course[]> => {
+    const response = await fetch(`${API_BASE_URL}/courses/all`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch courses');
+    return response.json();
+  },
+
   getById: async (id: number): Promise<CourseDetail> => {
     const response = await fetch(`${API_BASE_URL}/courses/${id}`);
     if (!response.ok) throw new Error('Failed to fetch course');
     return response.json();
   },
 
-  create: async (name: string): Promise<Course> => {
+  create: async (courseData: { name: string; course_date?: string; course_time?: string; leader?: string; visible?: number }): Promise<Course> => {
     const response = await fetch(`${API_BASE_URL}/courses`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(courseData),
     });
     if (!response.ok) throw new Error('Failed to create course');
     return response.json();
   },
 
-  update: async (id: number, name: string): Promise<Course> => {
+  update: async (id: number, courseData: { name: string; course_date?: string; course_time?: string; leader?: string; visible?: number }): Promise<Course> => {
     const response = await fetch(`${API_BASE_URL}/courses/${id}`, {
       method: 'PUT',
       headers: getHeaders(),
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(courseData),
     });
     if (!response.ok) throw new Error('Failed to update course');
     return response.json();
@@ -153,6 +161,99 @@ export const studyContentAPI = {
       body: JSON.stringify({ course_id: courseId, content, references }),
     });
     if (!response.ok) throw new Error('Failed to save study content');
+    return response.json();
+  },
+};
+
+// Schedule API
+export const scheduleAPI = {
+  getAll: async (): Promise<Schedule[]> => {
+    const response = await fetch(`${API_BASE_URL}/schedule`);
+    if (!response.ok) throw new Error('Failed to fetch schedule');
+    return response.json();
+  },
+
+  getAllIncludingHidden: async (): Promise<Schedule[]> => {
+    const response = await fetch(`${API_BASE_URL}/schedule/all`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch schedule');
+    return response.json();
+  },
+
+  getById: async (id: number): Promise<Schedule> => {
+    const response = await fetch(`${API_BASE_URL}/schedule/${id}`);
+    if (!response.ok) throw new Error('Failed to fetch schedule item');
+    return response.json();
+  },
+
+  create: async (scheduleData: {
+    course_date: string;
+    course_time?: string;
+    course_name: string;
+    leader?: string;
+    visible?: number;
+    is_manual?: number;
+    course_id?: number;
+  }): Promise<Schedule> => {
+    const response = await fetch(`${API_BASE_URL}/schedule`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(scheduleData),
+    });
+    if (!response.ok) throw new Error('Failed to create schedule item');
+    return response.json();
+  },
+
+  update: async (id: number, scheduleData: {
+    course_date: string;
+    course_time?: string;
+    course_name: string;
+    leader?: string;
+    visible?: number;
+    is_manual?: number;
+  }): Promise<Schedule> => {
+    const response = await fetch(`${API_BASE_URL}/schedule/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(scheduleData),
+    });
+    if (!response.ok) throw new Error('Failed to update schedule item');
+    return response.json();
+  },
+
+  toggleVisibility: async (id: number): Promise<{ visible: number }> => {
+    const response = await fetch(`${API_BASE_URL}/schedule/${id}/visibility`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to toggle visibility');
+    return response.json();
+  },
+
+  delete: async (id: number): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/schedule/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to delete schedule item');
+  },
+
+  autoPopulate: async (): Promise<{ added: number; updated: number; message?: string }> => {
+    const response = await fetch(`${API_BASE_URL}/schedule/auto-populate`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to auto-populate schedule');
+    return response.json();
+  },
+
+  syncFromCourses: async (): Promise<{ updated: number; message?: string }> => {
+    const response = await fetch(`${API_BASE_URL}/schedule/sync-from-courses`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to sync from courses');
     return response.json();
   },
 };

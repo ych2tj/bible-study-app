@@ -4,8 +4,18 @@ import { checkAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Get all courses
+// Get all visible courses (public - for Study Page)
 router.get('/', (req, res) => {
+  try {
+    const courses = db.prepare('SELECT * FROM courses WHERE visible = 1 ORDER BY created_at DESC').all();
+    res.json(courses);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all courses including hidden (admin - for Edit Page)
+router.get('/all', checkAuth, (req, res) => {
   try {
     const courses = db.prepare('SELECT * FROM courses ORDER BY created_at DESC').all();
     res.json(courses);
@@ -40,13 +50,23 @@ router.get('/:id', (req, res) => {
 // Create new course
 router.post('/', checkAuth, (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, course_date, course_time, leader, visible } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Course name is required' });
     }
 
-    const result = db.prepare('INSERT INTO courses (name) VALUES (?)').run(name);
+    const result = db.prepare(`
+      INSERT INTO courses (name, course_date, course_time, leader, visible)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(
+      name,
+      course_date || null,
+      course_time || null,
+      leader || null,
+      visible !== undefined ? visible : 1
+    );
+
     const course = db.prepare('SELECT * FROM courses WHERE id = ?').get(result.lastInsertRowid);
 
     res.status(201).json(course);
@@ -59,13 +79,25 @@ router.post('/', checkAuth, (req, res) => {
 router.put('/:id', checkAuth, (req, res) => {
   try {
     const { id } = req.params;
-    const { name } = req.body;
+    const { name, course_date, course_time, leader, visible } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Course name is required' });
     }
 
-    db.prepare('UPDATE courses SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(name, id);
+    db.prepare(`
+      UPDATE courses
+      SET name = ?, course_date = ?, course_time = ?, leader = ?, visible = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(
+      name,
+      course_date || null,
+      course_time || null,
+      leader || null,
+      visible !== undefined ? visible : 1,
+      id
+    );
+
     const course = db.prepare('SELECT * FROM courses WHERE id = ?').get(id);
 
     if (!course) {

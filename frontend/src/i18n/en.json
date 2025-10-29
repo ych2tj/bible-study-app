@@ -38,7 +38,13 @@
     "verses": "verses",
     "createdOn": "Created on",
     "courseManagement": "Course Management",
-    "verseManagement": "Verse & Content Management"
+    "verseManagement": "Verse & Content Management",
+    "date": "Course Date",
+    "time": "Course Time",
+    "leader": "Course Leader",
+    "visible": "Show on Study Page",
+    "hidden": "Hidden",
+    "editCourseInfo": "Edit Course Info"
   },
   "verse": {
     "title": "Bible Verses",
@@ -49,6 +55,7 @@
     "explanation": "Verse Explanation",
     "add": "Add Verse",
     "addNew": "Add New Verse",
+    "edit": "Edit Verse",
     "delete": "Delete Verse",
     "addedVerses": "Added Verses",
     "explanationLabel": "Explanation (Optional)",
@@ -62,7 +69,34 @@
     "references": "References",
     "studyContent": "Study Content",
     "studyNotes": "Study Notes",
-    "additionalResources": "Additional Resources:"
+    "additionalResources": "Additional Resources:",
+    "pcMode": "PC Mode",
+    "mobileMode": "Mobile Mode",
+    "switchToPC": "Switch to PC Mode",
+    "switchToMobile": "Switch to Mobile Mode"
+  },
+  "schedule": {
+    "title": "Course Schedule",
+    "management": "Schedule Management",
+    "date": "Date",
+    "time": "Time",
+    "courseName": "Course Name",
+    "leader": "Leader",
+    "visible": "Show on Study Page",
+    "hidden": "Hidden",
+    "addNew": "Add New Schedule",
+    "edit": "Edit Schedule",
+    "delete": "Delete Schedule",
+    "save": "Save",
+    "cancel": "Cancel",
+    "autoPopulate": "Auto-populate from Courses",
+    "autoPopulateSuccess": "Successfully added {count} schedule items",
+    "autoPopulateEmpty": "No new courses to add",
+    "manualEntry": "Manual Entry",
+    "autoEntry": "Auto Entry",
+    "noSchedule": "No schedule available",
+    "upcomingCourses": "Upcoming Courses",
+    "pastCourses": "Past Courses (Hidden)"
   },
   "common": {
     "save": "Save",
