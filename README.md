@@ -2,21 +2,154 @@
 
 A web application for managing and displaying Bible study course materials with bilingual support (Chinese/English).
 
-## Features
+---
+## Work Introduction
+This project is done by using Claude Code. To see the publish version, go to the branch CF_dev.
+To see the website go to: https://bible-study-app.ych2tj.workers.dev/
 
-- 📖 **Study Page (Public)**: Browse and view Bible study courses
-  - Course list display
-  - Interactive Bible verses with explanations
-  - Study content and references
+## Complete Feature List
 
-- ✏️ **Edit Page (Protected)**: Create and manage courses
-  - Password protection (set in `.env` file)
-  - Course creation and deletion
-  - Bible verse management (Gospel, Chapter, Verse, Content, Explanation)
-  - Study content and references editor
+### **END USER FEATURES** (Public Access - No Authentication)
 
-- 🌐 **Bilingual Support**: Switch between Chinese (中文) and English
-- 💾 **Local Data Storage**: SQLite database for all course data
+#### **1. Course Browsing**
+- View all visible courses in grid layout
+- Each course displays: name, verse count, date, time, and leader
+- Click course to view full content
+- Hidden courses (visible=0) are excluded
+
+#### **2. Course Content Viewing**
+- View Bible verses formatted as continuous paragraphs with superscript verse numbers
+- Verses automatically sorted by chapter and verse number
+- Two viewing modes (preference saved to browser):
+  - **PC Mode**: Click verse to see explanation in separate card below; resizable verses card (200-800px)
+  - **Mobile Mode**: Click verse to expand inline accordion-style explanation
+- View study notes for the course
+- View references with automatic URL-to-link conversion
+- Back button to return to course list
+
+#### **3. Schedule Viewing**
+- View upcoming course schedule (past dates automatically hidden)
+- Displays: date, time, course name, and leader with icons
+- Only visible schedule entries shown
+- Sorted by date (newest first)
+
+#### **4. Language Toggle**
+- Switch between Chinese and English
+- Preference persists across sessions
+- Affects all UI text throughout application
+
+---
+
+### **ADMINISTRATOR FEATURES** (Authenticated Access)
+
+#### **5. Authentication System**
+- Username and password login
+- Logout functionality
+- Password change capability with immediate effect (no server restart needed)
+- Changes persist to .env file
+
+#### **6. Course Management**
+**Create:**
+- Add courses with: name (required), leader, date, time, visibility status
+
+**View:**
+- See ALL courses including hidden ones
+- Displays metadata and verse counts
+
+**Edit:**
+- Inline editing of all course fields
+- Click course row to open in Verse tab
+
+**Visibility Control:**
+- Toggle visibility with eye icon
+- Controls whether course appears on Study Page
+
+**Delete:**
+- Remove courses with confirmation dialog
+- Cascades to delete associated verses and study content
+- Linked schedule entries become manual entries
+
+#### **7. Verse Management**
+**Add:**
+- Create verses with: gospel, chapter, verse number, content, explanation
+
+**View:**
+- All verses for selected course
+- Automatic sorting by chapter and verse number
+
+**Edit:**
+- Inline editing of all verse fields
+
+**Delete:**
+- Remove verses with confirmation dialog
+
+#### **8. Study Content Management**
+- Edit study notes (multiline textarea)
+- Edit references with format: "URL - Title (one per line)"
+- URLs automatically convert to clickable links on Study Page
+- Upsert operation (creates or updates)
+
+#### **9. Schedule Management**
+**Auto-Populate:**
+- Generate schedule from all courses with dates
+- Creates new entries and updates existing ones
+- Maintains bidirectional sync with linked courses
+
+**Manual Entry:**
+- Create standalone schedule items with: date, time, course name, leader, visibility
+
+**Edit:**
+- Inline editing of schedule entries
+- Auto-populated entries sync changes back to linked course
+- Manual entries update independently
+
+**Visibility Control:**
+- Toggle schedule visibility with eye icon
+
+**Delete:**
+- Remove schedule entries with confirmation dialog
+
+**Two Entry Types:**
+- **Manual Entries**: Independent standalone items
+- **Auto Entries**: Linked to courses with bidirectional sync
+
+#### **10. Password Management**
+- Change password via modal dialog
+- Password confirmation validation
+- Updates .env file and takes effect immediately
+- Auto-updates authentication token
+
+---
+
+### **DATA & TECHNICAL FEATURES**
+
+#### **Data Relationships**
+- Course → Verses (one-to-many, cascade delete)
+- Course → Study Content (one-to-one, cascade delete)
+- Course → Schedule (zero-to-one, optional link)
+
+#### **Visibility System**
+- Courses: visible/hidden toggle affects Study Page display
+- Schedule: visible/hidden toggle affects Schedule tab display
+- Edit Page shows all items regardless of visibility
+
+#### **API Architecture**
+- **Public**: GET courses (visible only), GET schedule (visible only), GET study content
+- **Protected**: All POST/PUT/DELETE operations, GET all courses, GET all schedules, password management
+
+#### **UI Components**
+- Reusable confirmation dialogs (danger/warning/info variants)
+- Reusable alert dialogs (success/error/info variants)
+- Responsive design with mobile-first approach
+- Persistent view mode preference (localStorage)
+
+#### **Database**
+- SQLite with auto-initialization
+- Foreign key constraints enabled
+- Cascade deletes for data integrity
+- Auto-timestamps on all records
+
+---
 
 ## Technology Stack
 
@@ -134,10 +267,11 @@ bible-study-app/
 │   │   ├── middleware/
 │   │   │   └── auth.js          # Authentication middleware
 │   │   ├── routes/
-│   │   │   ├── auth.js          # Auth endpoints
-│   │   │   ├── courses.js       # Course CRUD
-│   │   │   ├── verses.js        # Verse CRUD
-│   │   │   └── studyContent.js  # Study content endpoints
+│   │   │   ├── auth.js          # Auth + password change endpoints
+│   │   │   ├── courses.js       # Course CRUD + visibility
+│   │   │   ├── verses.js        # Verse CRUD + bulk operations
+│   │   │   ├── studyContent.js  # Study content endpoints
+│   │   │   └── schedule.js      # Schedule CRUD + auto-populate
 │   │   └── server.js            # Express server
 │   ├── package.json
 │   └── database.sqlite          # SQLite database (auto-created)
@@ -297,4 +431,4 @@ MIT
 
 ## Support
 
-For issues or questions, please refer to the demand.md and design.md files for project specifications.
+For issues or questions, please refer to the demand.md, design.md, todo.md, Todo2.md files for project specifications.
