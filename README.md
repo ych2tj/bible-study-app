@@ -4,8 +4,14 @@ A web application for managing and displaying Bible study course materials with 
 
 ---
 ## Work Introduction
-This project is done by using Claude Code. To see the publish version, go to the branch CF_dev.
+This project is done by using Claude Code.
 To see the website go to: https://bible-study-app.ych2tj.workers.dev/
+
+## Claude Code using tips
+- At beginning of a project creation, ask set plan mode, Claude Code to make plan first. Double check the plan, it may include sth not expected.
+- If a bug fixed more than two times, but still incorrect, then find the related file or code segments and ask Claude to double check.
+- Using MCP for debug, such as "browser-tools" is helpful
+- Don't forget to do /init after the project iterating to a new version
 
 ## Complete Feature List
 
