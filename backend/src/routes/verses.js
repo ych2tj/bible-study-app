@@ -13,10 +13,19 @@ router.post('/', checkAuth, (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    const course = db.prepare('SELECT language FROM courses WHERE id = ?').get(course_id);
+    const courseLang = course?.language || 'zh';
+
     const result = db.prepare(`
-      INSERT INTO verses (course_id, gospel, chapter, verse_number, content, explanation, order_index)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(course_id, gospel, chapter, verse_number, content, explanation || '', order_index || 0);
+      INSERT INTO verses (course_id, gospel, chapter, verse_number, content, explanation, order_index, content_zh, content_en, explanation_zh, explanation_en)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      course_id, gospel, chapter, verse_number, content, explanation || '', order_index || 0,
+      courseLang === 'zh' ? content : null,
+      courseLang === 'en' ? content : null,
+      courseLang === 'zh' ? (explanation || '') : null,
+      courseLang === 'en' ? (explanation || '') : null
+    );
 
     const verse = db.prepare('SELECT * FROM verses WHERE id = ?').get(result.lastInsertRowid);
 
@@ -36,11 +45,26 @@ router.put('/:id', checkAuth, (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    const existingVerse = db.prepare('SELECT course_id FROM verses WHERE id = ?').get(id);
+    const course = db.prepare('SELECT language FROM courses WHERE id = ?').get(existingVerse?.course_id);
+    const courseLang = course?.language || 'zh';
+
     db.prepare(`
       UPDATE verses
-      SET gospel = ?, chapter = ?, verse_number = ?, content = ?, explanation = ?, order_index = ?
+      SET gospel = ?, chapter = ?, verse_number = ?, content = ?, explanation = ?, order_index = ?,
+          content_zh = CASE WHEN ? = 'zh' THEN ? ELSE content_zh END,
+          content_en = CASE WHEN ? = 'en' THEN ? ELSE content_en END,
+          explanation_zh = CASE WHEN ? = 'zh' THEN ? ELSE explanation_zh END,
+          explanation_en = CASE WHEN ? = 'en' THEN ? ELSE explanation_en END
       WHERE id = ?
-    `).run(gospel, chapter, verse_number, content, explanation || '', order_index || 0, id);
+    `).run(
+      gospel, chapter, verse_number, content, explanation || '', order_index || 0,
+      courseLang, content,
+      courseLang, content,
+      courseLang, explanation || '',
+      courseLang, explanation || '',
+      id
+    );
 
     const verse = db.prepare('SELECT * FROM verses WHERE id = ?').get(id);
 

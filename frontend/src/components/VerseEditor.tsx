@@ -8,11 +8,17 @@ import AlertDialog from './AlertDialog';
 interface VerseEditorProps {
   courseId: number;
   verses: Verse[];
+  courseLanguage?: string;
   onUpdate: () => void;
 }
 
-export default function VerseEditor({ courseId, verses, onUpdate }: VerseEditorProps) {
-  const { t } = useTranslation();
+export default function VerseEditor({ courseId, verses, courseLanguage, onUpdate }: VerseEditorProps) {
+  const { t, i18n } = useTranslation();
+  const langLabel = courseLanguage === 'en' ? t('course.languageEnglish') : t('course.languageChinese');
+  const getLocalizedText = (zh: string | null | undefined, en: string | null | undefined): string => {
+    if (i18n.language === 'en') return en || zh || '';
+    return zh || en || '';
+  };
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingVerse, setEditingVerse] = useState<Verse | null>(null);
   const [gospel, setGospel] = useState('');
@@ -149,9 +155,17 @@ export default function VerseEditor({ courseId, verses, onUpdate }: VerseEditorP
       {/* Add Verse Form (Top) */}
       {showAddForm && (
         <div className="mb-6 p-6 bg-gray-50 rounded-lg border border-gray-200">
-          <h3 className="text-lg font-semibold mb-4">
+          <h3 className="text-lg font-semibold mb-1">
             {t('verse.addNew')}
           </h3>
+          <div className="mb-4 flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
+            <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-sm text-amber-800">
+              {(() => { const [before, after] = t('course.editLanguageNote', { language: '|||' }).split('|||'); return <>{before}<span className="font-bold">{langLabel}</span>{after}</>; })()}
+            </span>
+          </div>
           <form onSubmit={handleAddVerse} className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
               <div>
@@ -272,11 +286,11 @@ export default function VerseEditor({ courseId, verses, onUpdate }: VerseEditorP
                       </button>
                     </div>
                   </div>
-                  <div className="text-gray-800 mb-2">{verse.content}</div>
-                  {verse.explanation && (
+                  <div className="text-gray-800 mb-2">{getLocalizedText(verse.content_zh || verse.content, verse.content_en)}</div>
+                  {(verse.explanation_zh || verse.explanation_en || verse.explanation) && (
                     <div className="bg-blue-50 p-3 rounded mt-3 border border-blue-100">
                       <div className="text-sm font-medium text-blue-900 mb-1">{t('verse.explanationLabel')}:</div>
-                      <div className="text-sm text-blue-800">{verse.explanation}</div>
+                      <div className="text-sm text-blue-800">{getLocalizedText(verse.explanation_zh || verse.explanation, verse.explanation_en)}</div>
                     </div>
                   )}
                 </div>
@@ -284,7 +298,15 @@ export default function VerseEditor({ courseId, verses, onUpdate }: VerseEditorP
                 {/* Inline Edit Form - Show below this verse when editing */}
                 {editingVerse?.id === verse.id && (
                   <div className="mt-4 p-6 bg-blue-50 rounded-lg border-2 border-blue-300">
-                    <h3 className="text-lg font-semibold mb-4 text-blue-900">{t('verse.edit')}</h3>
+                    <h3 className="text-lg font-semibold mb-1 text-blue-900">{t('verse.edit')}</h3>
+                    <div className="mb-4 flex items-center gap-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
+                      <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-sm text-amber-800">
+                        {(() => { const [before, after] = t('course.editLanguageNote', { language: '|||' }).split('|||'); return <>{before}<span className="font-bold">{langLabel}</span>{after}</>; })()}
+                      </span>
+                    </div>
                     <form onSubmit={handleAddVerse} className="space-y-4">
                       <div className="grid grid-cols-3 gap-4">
                         <div>

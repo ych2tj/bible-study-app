@@ -4,8 +4,17 @@ import { coursesAPI } from '../services/api';
 import type { Course, CourseDetail, Verse } from '../types';
 import { ScheduleView } from './ScheduleView';
 
+const getLocalizedText = (
+  textZh: string | null | undefined,
+  textEn: string | null | undefined,
+  currentLang: string
+): string => {
+  if (currentLang === 'en') return textEn || textZh || '';
+  return textZh || textEn || '';
+};
+
 export default function StudyPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [courses, setCourses] = useState<Course[]>([]);
   const [coursesWithDetails, setCoursesWithDetails] = useState<Map<number, number>>(new Map());
   const [selectedCourse, setSelectedCourse] = useState<CourseDetail | null>(null);
@@ -233,7 +242,7 @@ export default function StudyPage() {
                     ></div>
                     <div className="relative h-full flex items-center justify-center p-6">
                       <h3 className="text-2xl font-bold text-white text-center drop-shadow-lg">
-                        {course.name}
+                        {getLocalizedText(course.name_zh, course.name_en, i18n.language) || course.name}
                       </h3>
                     </div>
                   </div>
@@ -308,7 +317,9 @@ export default function StudyPage() {
               </button>
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-800">{selectedCourse.name}</h1>
+                  <h1 className="text-3xl font-bold text-gray-800">
+                    {getLocalizedText(selectedCourse.name_zh, selectedCourse.name_en, i18n.language) || selectedCourse.name}
+                  </h1>
                   <p className="text-gray-500 mt-2">{t('study.content')}</p>
                 </div>
                 {/* PC/Mobile Mode Toggle Button */}
@@ -371,16 +382,16 @@ export default function StudyPage() {
                             <sup className="font-bold text-blue-600 text-base">
                               {verse.verse_number}
                             </sup>
-                            {verse.content}
+                            {getLocalizedText(verse.content_zh, verse.content_en, i18n.language) || verse.content}
                           </span>
                           {/* Inline Explanation (Mobile Mode Only) */}
-                          {viewMode === 'mobile' && inlineExpandedVerseId === verse.id && verse.explanation && (
+                          {viewMode === 'mobile' && inlineExpandedVerseId === verse.id && (verse.explanation_zh || verse.explanation_en || verse.explanation) && (
                             <span className="block my-4 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
                               <div className="font-bold text-blue-700 mb-2">
                                 {verse.gospel} {verse.chapter}:{verse.verse_number}
                               </div>
                               <div className="text-gray-700 whitespace-pre-wrap">
-                                {verse.explanation}
+                                {getLocalizedText(verse.explanation_zh, verse.explanation_en, i18n.language) || verse.explanation}
                               </div>
                             </span>
                           )}
@@ -412,10 +423,10 @@ export default function StudyPage() {
                 {selectedVerse ? (
                   <div>
                     <div className="mb-3 text-blue-600 font-bold text-lg">
-                      {selectedVerse.gospel} {selectedVerse.chapter}:{selectedVerse.verse_number}
+                      {t('verse.verseHeading', { number: selectedVerse.verse_number })}
                     </div>
                     <p className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                      {selectedVerse.explanation || t('study.clickVerse')}
+                      {getLocalizedText(selectedVerse.explanation_zh, selectedVerse.explanation_en, i18n.language) || selectedVerse.explanation || t('study.clickVerse')}
                     </p>
                   </div>
                 ) : (
@@ -425,23 +436,33 @@ export default function StudyPage() {
             )}
 
             {/* Study Notes */}
-            {selectedCourse.studyContent?.content && (
+            {(selectedCourse.studyContent?.content_zh || selectedCourse.studyContent?.content_en || selectedCourse.studyContent?.content) && (
               <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-2xl font-bold mb-4">{t('study.studyNotes')}</h2>
                 <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                  {selectedCourse.studyContent.content}
+                  {getLocalizedText(
+                    selectedCourse.studyContent?.content_zh,
+                    selectedCourse.studyContent?.content_en,
+                    i18n.language
+                  ) || selectedCourse.studyContent?.content}
                 </div>
               </div>
             )}
 
             {/* References - At Bottom */}
-            {selectedCourse.studyContent?.reference_text && (
+            {(selectedCourse.studyContent?.reference_text_zh || selectedCourse.studyContent?.reference_text_en || selectedCourse.studyContent?.reference_text) && (
               <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-2xl font-bold mb-4">{t('study.references')}</h2>
                 <div className="space-y-2">
                   <p className="font-medium text-gray-700">{t('study.additionalResources')}</p>
                   <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-                    {renderTextWithLinks(selectedCourse.studyContent.reference_text)}
+                    {renderTextWithLinks(
+                      getLocalizedText(
+                        selectedCourse.studyContent?.reference_text_zh,
+                        selectedCourse.studyContent?.reference_text_en,
+                        i18n.language
+                      ) || selectedCourse.studyContent?.reference_text || ''
+                    )}
                   </div>
                 </div>
               </div>

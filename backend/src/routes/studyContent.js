@@ -29,6 +29,9 @@ router.post('/', checkAuth, (req, res) => {
       return res.status(400).json({ error: 'course_id is required' });
     }
 
+    const course = db.prepare('SELECT language FROM courses WHERE id = ?').get(course_id);
+    const courseLang = course?.language || 'zh';
+
     // Check if study content already exists
     const existing = db.prepare('SELECT * FROM study_content WHERE course_id = ?').get(course_id);
 
@@ -37,16 +40,33 @@ router.post('/', checkAuth, (req, res) => {
       // Update existing
       db.prepare(`
         UPDATE study_content
-        SET content = ?, reference_text = ?
+        SET content = ?, reference_text = ?,
+            content_zh = CASE WHEN ? = 'zh' THEN ? ELSE content_zh END,
+            content_en = CASE WHEN ? = 'en' THEN ? ELSE content_en END,
+            reference_text_zh = CASE WHEN ? = 'zh' THEN ? ELSE reference_text_zh END,
+            reference_text_en = CASE WHEN ? = 'en' THEN ? ELSE reference_text_en END
         WHERE course_id = ?
-      `).run(content || '', references || '', course_id);
+      `).run(
+        content || '', references || '',
+        courseLang, content || '',
+        courseLang, content || '',
+        courseLang, references || '',
+        courseLang, references || '',
+        course_id
+      );
       result = db.prepare('SELECT * FROM study_content WHERE course_id = ?').get(course_id);
     } else {
       // Insert new
       const insertResult = db.prepare(`
-        INSERT INTO study_content (course_id, content, reference_text)
-        VALUES (?, ?, ?)
-      `).run(course_id, content || '', references || '');
+        INSERT INTO study_content (course_id, content, reference_text, content_zh, content_en, reference_text_zh, reference_text_en)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        course_id, content || '', references || '',
+        courseLang === 'zh' ? (content || '') : null,
+        courseLang === 'en' ? (content || '') : null,
+        courseLang === 'zh' ? (references || '') : null,
+        courseLang === 'en' ? (references || '') : null
+      );
       result = db.prepare('SELECT * FROM study_content WHERE id = ?').get(insertResult.lastInsertRowid);
     }
 

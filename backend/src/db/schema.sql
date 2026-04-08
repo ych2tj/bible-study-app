@@ -6,6 +6,9 @@ CREATE TABLE IF NOT EXISTS courses (
     course_time TEXT,
     leader TEXT,
     visible INTEGER DEFAULT 1 CHECK (visible IN (0, 1)),
+    language TEXT DEFAULT 'zh',
+    name_zh TEXT,
+    name_en TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -20,6 +23,10 @@ CREATE TABLE IF NOT EXISTS verses (
     content TEXT NOT NULL,
     explanation TEXT,
     order_index INTEGER NOT NULL,
+    content_zh TEXT,
+    content_en TEXT,
+    explanation_zh TEXT,
+    explanation_en TEXT,
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
 );
 
@@ -29,6 +36,10 @@ CREATE TABLE IF NOT EXISTS study_content (
     course_id INTEGER UNIQUE NOT NULL,
     content TEXT,
     reference_text TEXT,
+    content_zh TEXT,
+    content_en TEXT,
+    reference_text_zh TEXT,
+    reference_text_en TEXT,
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
 );
 
@@ -38,6 +49,8 @@ CREATE TABLE IF NOT EXISTS schedule (
     course_date TEXT NOT NULL,
     course_time TEXT,
     course_name TEXT NOT NULL,
+    course_name_zh TEXT,
+    course_name_en TEXT,
     leader TEXT,
     visible INTEGER DEFAULT 1 CHECK (visible IN (0, 1)),
     is_manual INTEGER DEFAULT 0 CHECK (is_manual IN (0, 1)),

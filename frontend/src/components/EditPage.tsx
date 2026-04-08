@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { authAPI } from '../services/api';
+import { authAPI, clearAuthToken, getAuthToken } from '../services/api';
 import CourseEditor from './CourseEditor';
 
 export default function EditPage() {
   const { t } = useTranslation();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!getAuthToken());
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -125,6 +125,7 @@ export default function EditPage() {
   }
 
   const handleLogout = () => {
+    clearAuthToken();
     setIsAuthenticated(false);
     setPassword('');
     setError('');

@@ -50,21 +50,25 @@ router.get('/:id', (req, res) => {
 // Create new course
 router.post('/', checkAuth, (req, res) => {
   try {
-    const { name, course_date, course_time, leader, visible } = req.body;
+    const { name, course_date, course_time, leader, visible, language } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Course name is required' });
     }
 
+    const lang = language || 'zh';
     const result = db.prepare(`
-      INSERT INTO courses (name, course_date, course_time, leader, visible)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO courses (name, course_date, course_time, leader, visible, language, name_zh, name_en)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       name,
       course_date || null,
       course_time || null,
       leader || null,
-      visible !== undefined ? visible : 1
+      visible !== undefined ? visible : 1,
+      lang,
+      lang === 'zh' ? name : null,
+      lang === 'en' ? name : null
     );
 
     const course = db.prepare('SELECT * FROM courses WHERE id = ?').get(result.lastInsertRowid);
@@ -79,15 +83,21 @@ router.post('/', checkAuth, (req, res) => {
 router.put('/:id', checkAuth, (req, res) => {
   try {
     const { id } = req.params;
-    const { name, course_date, course_time, leader, visible } = req.body;
+    const { name, course_date, course_time, leader, visible, language } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Course name is required' });
     }
 
+    const existing = db.prepare('SELECT language FROM courses WHERE id = ?').get(id);
+    const lang = language || existing?.language || 'zh';
+
     db.prepare(`
       UPDATE courses
-      SET name = ?, course_date = ?, course_time = ?, leader = ?, visible = ?, updated_at = CURRENT_TIMESTAMP
+      SET name = ?, course_date = ?, course_time = ?, leader = ?, visible = ?, language = ?,
+          name_zh = CASE WHEN ? = 'zh' THEN ? ELSE name_zh END,
+          name_en = CASE WHEN ? = 'en' THEN ? ELSE name_en END,
+          updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
       name,
@@ -95,6 +105,9 @@ router.put('/:id', checkAuth, (req, res) => {
       course_time || null,
       leader || null,
       visible !== undefined ? visible : 1,
+      lang,
+      lang, name,
+      lang, name,
       id
     );
 

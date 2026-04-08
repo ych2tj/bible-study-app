@@ -181,7 +181,7 @@ To see the website go to: https://bible-study-app.ych2tj.workers.dev/
 
 1. **Clone or navigate to the project directory**
    ```bash
-   cd /media/robert/roblinux/claude_Code/CH_bible_study
+   cd /path/to/CH_bible_study
    ```
 
 2. **Install Backend Dependencies**

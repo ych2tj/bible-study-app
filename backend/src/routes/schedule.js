@@ -43,19 +43,23 @@ router.get('/:id', (req, res) => {
 // Create new schedule item
 router.post('/', checkAuth, (req, res) => {
   try {
-    const { course_date, course_time, course_name, leader, visible, is_manual, course_id } = req.body;
+    const { course_date, course_time, course_name, course_name_zh, course_name_en, leader, visible, is_manual, course_id } = req.body;
 
-    if (!course_date || !course_name) {
+    if (!course_date || (!course_name && !course_name_zh && !course_name_en)) {
       return res.status(400).json({ error: 'course_date and course_name are required' });
     }
 
+    const resolvedName = course_name || course_name_zh || course_name_en;
+
     const result = db.prepare(`
-      INSERT INTO schedule (course_date, course_time, course_name, leader, visible, is_manual, course_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO schedule (course_date, course_time, course_name, course_name_zh, course_name_en, leader, visible, is_manual, course_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       course_date,
       course_time || null,
-      course_name,
+      resolvedName,
+      course_name_zh || null,
+      course_name_en || null,
       leader || null,
       visible !== undefined ? visible : 1,
       is_manual !== undefined ? is_manual : 1,
@@ -63,7 +67,7 @@ router.post('/', checkAuth, (req, res) => {
     );
 
     const schedule = db.prepare('SELECT * FROM schedule WHERE id = ?').get(result.lastInsertRowid);
-    res.status(201).json(schedule);
+    res.status(201).json({ id: result.lastInsertRowid, ...schedule });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -73,7 +77,7 @@ router.post('/', checkAuth, (req, res) => {
 router.put('/:id', checkAuth, (req, res) => {
   try {
     const { id } = req.params;
-    const { course_date, course_time, course_name, leader, visible, is_manual } = req.body;
+    const { course_date, course_time, course_name, course_name_zh, course_name_en, leader, visible, is_manual } = req.body;
 
     // Check if item exists
     const existing = db.prepare('SELECT * FROM schedule WHERE id = ?').get(id);
@@ -82,15 +86,19 @@ router.put('/:id', checkAuth, (req, res) => {
       return res.status(404).json({ error: 'Schedule item not found' });
     }
 
+    const resolvedName = course_name || course_name_zh || course_name_en || existing.course_name;
+
     db.prepare(`
       UPDATE schedule
-      SET course_date = ?, course_time = ?, course_name = ?, leader = ?,
-          visible = ?, is_manual = ?, updated_at = CURRENT_TIMESTAMP
+      SET course_date = ?, course_time = ?, course_name = ?, course_name_zh = ?, course_name_en = ?,
+          leader = ?, visible = ?, is_manual = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
       course_date,
       course_time || null,
-      course_name,
+      resolvedName,
+      course_name_zh !== undefined ? course_name_zh : existing.course_name_zh,
+      course_name_en !== undefined ? course_name_en : existing.course_name_en,
       leader || null,
       visible,
       is_manual,
@@ -98,7 +106,7 @@ router.put('/:id', checkAuth, (req, res) => {
     );
 
     const updated = db.prepare('SELECT * FROM schedule WHERE id = ?').get(id);
-    res.json(updated);
+    res.json({ success: true, ...updated });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -148,7 +156,7 @@ router.delete('/:id', checkAuth, (req, res) => {
 router.post('/auto-populate', checkAuth, (req, res) => {
   try {
     // Get all courses with dates
-    const courses = db.prepare('SELECT id, name, course_date, course_time, leader, visible FROM courses WHERE course_date IS NOT NULL').all();
+    const courses = db.prepare('SELECT id, name, name_zh, name_en, course_date, course_time, leader, visible FROM courses WHERE course_date IS NOT NULL').all();
 
     if (courses.length === 0) {
       return res.json({ added: 0, updated: 0, message: 'No courses with dates found' });
@@ -163,13 +171,13 @@ router.post('/auto-populate', checkAuth, (req, res) => {
     let updated = 0;
 
     const insertStmt = db.prepare(`
-      INSERT INTO schedule (course_date, course_time, course_name, leader, visible, is_manual, course_id)
-      VALUES (?, ?, ?, ?, ?, 0, ?)
+      INSERT INTO schedule (course_date, course_time, course_name, course_name_zh, course_name_en, leader, visible, is_manual, course_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)
     `);
 
     const updateStmt = db.prepare(`
       UPDATE schedule
-      SET course_name = ?, course_date = ?, course_time = ?, leader = ?, visible = ?, updated_at = CURRENT_TIMESTAMP
+      SET course_name = ?, course_name_zh = ?, course_name_en = ?, course_date = ?, course_time = ?, leader = ?, visible = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
 
@@ -180,6 +188,8 @@ router.post('/auto-populate', checkAuth, (req, res) => {
         // Update existing auto-populated entry
         updateStmt.run(
           course.name,
+          course.name_zh || null,
+          course.name_en || null,
           course.course_date,
           course.course_time || null,
           course.leader || null,
@@ -193,6 +203,8 @@ router.post('/auto-populate', checkAuth, (req, res) => {
           course.course_date,
           course.course_time || null,
           course.name,
+          course.name_zh || null,
+          course.name_en || null,
           course.leader || null,
           course.visible,
           course.id
@@ -220,7 +232,7 @@ router.post('/sync-from-courses', checkAuth, (req, res) => {
     // Get the latest course data for these courses
     const courseIds = scheduleItems.map(item => item.course_id);
     const placeholders = courseIds.map(() => '?').join(',');
-    const courses = db.prepare(`SELECT id, name, course_date, course_time, leader, visible FROM courses WHERE id IN (${placeholders})`).all(...courseIds);
+    const courses = db.prepare(`SELECT id, name, name_zh, name_en, course_date, course_time, leader, visible FROM courses WHERE id IN (${placeholders})`).all(...courseIds);
 
     // Create a map of course_id -> course data
     const courseMap = new Map(courses.map(course => [course.id, course]));
@@ -228,7 +240,7 @@ router.post('/sync-from-courses', checkAuth, (req, res) => {
     // Update schedule items with latest course data
     const updateStmt = db.prepare(`
       UPDATE schedule
-      SET course_name = ?, course_date = ?, course_time = ?, leader = ?, visible = ?, updated_at = CURRENT_TIMESTAMP
+      SET course_name = ?, course_name_zh = ?, course_name_en = ?, course_date = ?, course_time = ?, leader = ?, visible = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
 
@@ -240,6 +252,8 @@ router.post('/sync-from-courses', checkAuth, (req, res) => {
 
       updateStmt.run(
         course.name,
+        course.name_zh || null,
+        course.name_en || null,
         course.course_date,
         course.course_time || null,
         course.leader || null,

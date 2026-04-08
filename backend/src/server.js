@@ -14,6 +14,7 @@ import coursesRoutes from './routes/courses.js';
 import versesRoutes from './routes/verses.js';
 import studyContentRoutes from './routes/studyContent.js';
 import scheduleRoutes from './routes/schedule.js';
+import translateRoutes from './routes/translate.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -33,6 +34,7 @@ app.use('/api/courses', coursesRoutes);
 app.use('/api/verses', versesRoutes);
 app.use('/api/study-content', studyContentRoutes);
 app.use('/api/schedule', scheduleRoutes);
+app.use('/api/translate', translateRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

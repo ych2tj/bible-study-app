@@ -9,8 +9,17 @@ interface ScheduleManagerProps {
   onCoursesUpdate?: () => Promise<void>;
 }
 
+const getLocalizedText = (
+  textZh: string | null | undefined,
+  textEn: string | null | undefined,
+  currentLang: string
+): string => {
+  if (currentLang === 'en') return textEn || textZh || '';
+  return textZh || textEn || '';
+};
+
 export const ScheduleManager = ({ onCoursesUpdate }: ScheduleManagerProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -20,10 +29,12 @@ export const ScheduleManager = ({ onCoursesUpdate }: ScheduleManagerProps) => {
   const [formData, setFormData] = useState({
     course_date: '',
     course_time: '',
-    course_name: '',
+    course_name_zh: '',
+    course_name_en: '',
     leader: '',
     visible: 1,
   });
+  const [nameLang, setNameLang] = useState<'zh' | 'en'>('zh');
 
   // Dialog state
   const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; scheduleId: number | null }>({
@@ -57,10 +68,12 @@ export const ScheduleManager = ({ onCoursesUpdate }: ScheduleManagerProps) => {
     setFormData({
       course_date: '',
       course_time: '',
-      course_name: '',
+      course_name_zh: '',
+      course_name_en: '',
       leader: '',
       visible: 1,
     });
+    setNameLang('zh');
     setEditingSchedule(null);
     setShowAddForm(false);
   };
@@ -75,29 +88,34 @@ export const ScheduleManager = ({ onCoursesUpdate }: ScheduleManagerProps) => {
     setFormData({
       course_date: schedule.course_date,
       course_time: schedule.course_time || '',
-      course_name: schedule.course_name,
+      course_name_zh: schedule.course_name_zh || '',
+      course_name_en: schedule.course_name_en || '',
       leader: schedule.leader || '',
       visible: schedule.visible,
     });
+    setNameLang('zh');
     setShowAddForm(false);
   };
 
   const handleSave = async () => {
-    if (!formData.course_date || !formData.course_name) {
+    if (!formData.course_date || (!formData.course_name_zh && !formData.course_name_en)) {
       setAlertDialog({
         isOpen: true,
         title: t('common.error'),
-        message: 'Date and Course Name are required',
+        message: 'Date and at least one Course Name (ZH or EN) are required',
         variant: 'error',
       });
       return;
     }
+
+    const courseName = formData.course_name_zh || formData.course_name_en;
 
     try {
       if (editingSchedule) {
         // Update existing schedule
         await scheduleAPI.update(editingSchedule.id, {
           ...formData,
+          course_name: courseName,
           is_manual: editingSchedule.is_manual,
         });
 
@@ -105,7 +123,7 @@ export const ScheduleManager = ({ onCoursesUpdate }: ScheduleManagerProps) => {
         if (editingSchedule.course_id) {
           try {
             await coursesAPI.update(editingSchedule.course_id, {
-              name: formData.course_name,
+              name: courseName,
               course_date: formData.course_date,
               course_time: formData.course_time || undefined,
               leader: formData.leader || undefined,
@@ -125,6 +143,7 @@ export const ScheduleManager = ({ onCoursesUpdate }: ScheduleManagerProps) => {
         // Create new schedule
         await scheduleAPI.create({
           ...formData,
+          course_name: courseName,
           is_manual: 1,
         });
       }
@@ -268,13 +287,24 @@ export const ScheduleManager = ({ onCoursesUpdate }: ScheduleManagerProps) => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">{t('schedule.courseName')} *</label>
-              <input
-                type="text"
-                value={formData.course_name}
-                onChange={(e) => setFormData({ ...formData, course_name: e.target.value })}
-                className="w-full px-3 py-2 border rounded"
-              />
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-sm font-medium">{t('schedule.courseName')} *</label>
+                <div className="flex rounded overflow-hidden border border-gray-300 text-xs">
+                  <button type="button" onClick={() => setNameLang('zh')}
+                    className={`px-2 py-1 transition ${nameLang === 'zh' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>ZH</button>
+                  <button type="button" onClick={() => setNameLang('en')}
+                    className={`px-2 py-1 transition ${nameLang === 'en' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>EN</button>
+                </div>
+              </div>
+              {nameLang === 'zh' ? (
+                <input type="text" value={formData.course_name_zh}
+                  onChange={(e) => setFormData({ ...formData, course_name_zh: e.target.value })}
+                  className="w-full px-3 py-2 border rounded" placeholder="中文课程名称" />
+              ) : (
+                <input type="text" value={formData.course_name_en}
+                  onChange={(e) => setFormData({ ...formData, course_name_en: e.target.value })}
+                  className="w-full px-3 py-2 border rounded" placeholder="English course name" />
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">{t('schedule.leader')}</label>
@@ -352,7 +382,9 @@ export const ScheduleManager = ({ onCoursesUpdate }: ScheduleManagerProps) => {
                   <tr key={schedule.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 whitespace-nowrap">{schedule.course_date}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{schedule.course_time || '-'}</td>
-                    <td className="px-4 py-3">{schedule.course_name}</td>
+                    <td className="px-4 py-3">
+                      {getLocalizedText(schedule.course_name_zh, schedule.course_name_en, i18n.language) || schedule.course_name}
+                    </td>
                     <td className="px-4 py-3">{schedule.leader || '-'}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs rounded ${schedule.is_manual ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
@@ -413,13 +445,24 @@ export const ScheduleManager = ({ onCoursesUpdate }: ScheduleManagerProps) => {
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium mb-1">{t('schedule.courseName')} *</label>
-                              <input
-                                type="text"
-                                value={formData.course_name}
-                                onChange={(e) => setFormData({ ...formData, course_name: e.target.value })}
-                                className="w-full px-3 py-2 border rounded"
-                              />
+                              <div className="flex items-center justify-between mb-1">
+                                <label className="text-sm font-medium">{t('schedule.courseName')} *</label>
+                                <div className="flex rounded overflow-hidden border border-gray-300 text-xs">
+                                  <button type="button" onClick={() => setNameLang('zh')}
+                                    className={`px-2 py-1 transition ${nameLang === 'zh' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>ZH</button>
+                                  <button type="button" onClick={() => setNameLang('en')}
+                                    className={`px-2 py-1 transition ${nameLang === 'en' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>EN</button>
+                                </div>
+                              </div>
+                              {nameLang === 'zh' ? (
+                                <input type="text" value={formData.course_name_zh}
+                                  onChange={(e) => setFormData({ ...formData, course_name_zh: e.target.value })}
+                                  className="w-full px-3 py-2 border rounded" placeholder="中文课程名称" />
+                              ) : (
+                                <input type="text" value={formData.course_name_en}
+                                  onChange={(e) => setFormData({ ...formData, course_name_en: e.target.value })}
+                                  className="w-full px-3 py-2 border rounded" placeholder="English course name" />
+                              )}
                             </div>
                             <div>
                               <label className="block text-sm font-medium mb-1">{t('schedule.leader')}</label>

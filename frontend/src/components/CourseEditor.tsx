@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import { coursesAPI } from '../services/api';
 import type { Course, CourseDetail } from '../types';
 import VerseEditor from './VerseEditor';
@@ -9,7 +10,12 @@ import ConfirmDialog from './ConfirmDialog';
 import AlertDialog from './AlertDialog';
 
 export default function CourseEditor() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const location = useLocation();
+  const getLocalizedText = (zh: string | null | undefined, en: string | null | undefined): string => {
+    if (i18n.language === 'en') return en || zh || '';
+    return zh || en || '';
+  };
   const [courses, setCourses] = useState<Course[]>([]);
   const [coursesWithDetails, setCoursesWithDetails] = useState<Map<number, number>>(new Map());
   const [selectedCourse, setSelectedCourse] = useState<CourseDetail | null>(null);
@@ -18,6 +24,7 @@ export default function CourseEditor() {
   const [newCourseTime, setNewCourseTime] = useState('');
   const [newCourseLeader, setNewCourseLeader] = useState('');
   const [newCourseVisible, setNewCourseVisible] = useState(0);
+  const [newCourseLanguage, setNewCourseLanguage] = useState('zh');
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'course' | 'verse' | 'schedule'>('course');
@@ -27,6 +34,18 @@ export default function CourseEditor() {
   useEffect(() => {
     loadCourses();
   }, []);
+
+  // Auto-select course and tab when returning from TranslationPage
+  useEffect(() => {
+    const state = location.state as { returnCourseId?: number; tab?: string } | null;
+    if (state?.returnCourseId && state?.tab === 'verse') {
+      const id = state.returnCourseId;
+      coursesAPI.getById(id).then(courseDetail => {
+        setSelectedCourse(courseDetail);
+        setActiveTab('verse');
+      }).catch(err => console.error('Failed to restore course selection:', err));
+    }
+  }, [location.state]);
 
   const loadCourses = async () => {
     try {
@@ -64,12 +83,14 @@ export default function CourseEditor() {
         course_time: newCourseTime || undefined,
         leader: newCourseLeader || undefined,
         visible: newCourseVisible,
+        language: newCourseLanguage,
       });
       setNewCourseName('');
       setNewCourseDate('');
       setNewCourseTime('');
       setNewCourseLeader('');
       setNewCourseVisible(0);
+      setNewCourseLanguage('zh');
       await loadCourses();
     } catch (error) {
       console.error('Failed to create course:', error);
@@ -91,6 +112,7 @@ export default function CourseEditor() {
         course_time: editingCourse.course_time || undefined,
         leader: editingCourse.leader || undefined,
         visible: editingCourse.visible,
+        language: editingCourse.language || 'zh',
       });
       setEditingCourse(null);
       await loadCourses();
@@ -122,6 +144,7 @@ export default function CourseEditor() {
         course_time: course.course_time,
         leader: course.leader,
         visible: newVisibility,
+        language: course.language || 'zh',
       });
       await loadCourses();
       setAlert({
@@ -285,7 +308,7 @@ export default function CourseEditor() {
                     className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-wrap">
                   <label className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -295,6 +318,17 @@ export default function CourseEditor() {
                     />
                     <span className="text-sm text-gray-700">{t('course.visible')}</span>
                   </label>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-700 font-medium">{t('course.language')}:</label>
+                    <select
+                      value={newCourseLanguage}
+                      onChange={(e) => setNewCourseLanguage(e.target.value)}
+                      className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="zh">{t('course.languageChinese')}</option>
+                      <option value="en">{t('course.languageEnglish')}</option>
+                    </select>
+                  </div>
                   <button
                     type="submit"
                     className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium"
@@ -322,7 +356,17 @@ export default function CourseEditor() {
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-3">
-                            <h3 className="font-bold text-lg">{course.name}</h3>
+                            <h3 className="font-bold text-lg">{getLocalizedText(course.name_zh || course.name, course.name_en)}</h3>
+                            {(() => {
+                              const showingEn = i18n.language === 'en' && !!course.name_en;
+                              return (
+                                <span className={`px-2 py-0.5 text-xs rounded font-medium ${
+                                  showingEn ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'
+                                }`}>
+                                  {showingEn ? 'EN' : 'ZH'}
+                                </span>
+                              );
+                            })()}
                             {course.visible === 0 && (
                               <span className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded">
                                 {t('course.hidden')}
@@ -443,16 +487,24 @@ export default function CourseEditor() {
                                 className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                               />
                             </div>
-                            <div className="flex items-center justify-between">
-                              <label className="flex items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  checked={editingCourse.visible === 1}
-                                  onChange={(e) => setEditingCourse({ ...editingCourse, visible: e.target.checked ? 1 : 0 })}
-                                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                />
-                                <span className="text-sm text-gray-700">{t('course.visible')}</span>
-                              </label>
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                              <div className="flex items-center gap-4">
+                                <label className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={editingCourse.visible === 1}
+                                    onChange={(e) => setEditingCourse({ ...editingCourse, visible: e.target.checked ? 1 : 0 })}
+                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                  />
+                                  <span className="text-sm text-gray-700">{t('course.visible')}</span>
+                                </label>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-gray-700 font-medium">{t('course.language')}:</span>
+                                  <span className="text-sm text-gray-800 font-semibold">
+                                    {(editingCourse.language || 'zh') === 'zh' ? t('course.languageChinese') : t('course.languageEnglish')}
+                                  </span>
+                                </div>
+                              </div>
                               <div className="flex gap-2">
                                 <button
                                   type="button"
@@ -506,7 +558,7 @@ export default function CourseEditor() {
                   </svg>
                   {t('common.back')}
                 </button>
-                <h2 className="text-2xl font-bold">{selectedCourse.name}</h2>
+                <h2 className="text-2xl font-bold">{getLocalizedText(selectedCourse.name_zh || selectedCourse.name, selectedCourse.name_en)}</h2>
               </div>
 
               {/* Course Details Editor */}
@@ -521,9 +573,10 @@ export default function CourseEditor() {
                       course_time: selectedCourse.course_time || undefined,
                       leader: selectedCourse.leader || undefined,
                       visible: selectedCourse.visible,
+                      language: selectedCourse.language || 'zh',
                     });
                     await refreshCourse();
-                    await loadCourses(); // Refresh the courses list to update visibility status
+                    await loadCourses();
                     setAlert({
                       title: t('common.success'),
                       message: 'Course details updated successfully!',
@@ -591,6 +644,16 @@ export default function CourseEditor() {
                       {t('common.save')}
                     </button>
                   </div>
+                  <div className="mt-3 flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                    <svg className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="text-sm text-amber-800">
+                      <span className="font-semibold">{t('course.language')}: </span>
+                      <span className="font-bold">{selectedCourse.language === 'en' ? t('course.languageEnglish') : t('course.languageChinese')}</span>
+                      <span className="ml-2 text-amber-700">— {t('course.languageNote')}</span>
+                    </div>
+                  </div>
                 </form>
               </div>
 
@@ -598,12 +661,14 @@ export default function CourseEditor() {
               <VerseEditor
                 courseId={selectedCourse.id}
                 verses={selectedCourse.verses}
+                courseLanguage={selectedCourse.language}
                 onUpdate={refreshCourse}
               />
 
               {/* Study Content Editor */}
               <StudyContentEditor
                 courseId={selectedCourse.id}
+                courseLanguage={selectedCourse.language}
                 studyContent={selectedCourse.studyContent}
                 onUpdate={refreshCourse}
               />

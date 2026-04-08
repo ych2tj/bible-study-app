@@ -35,3 +35,8 @@ Thumbs.db
 screenshots/
 images/
 frontend/db/
+
+# Cloudflare Workers (not used in master/local deployment)
+frontend/.dev.vars
+frontend/worker-configuration.d.ts
+frontend/.wrangler/

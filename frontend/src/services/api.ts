@@ -1,16 +1,20 @@
-import type { Course, CourseDetail, Verse, StudyContent, Schedule } from '../types';
+import type { Course, CourseDetail, Verse, StudyContent, Schedule, TranslationResult, TranslationHealth } from '../types';
 
 const API_BASE_URL = 'http://localhost:3001/api';
 
-let authToken: string | null = null;
+let authToken: string | null = sessionStorage.getItem('authToken');
 
 export const setAuthToken = (token: string) => {
   authToken = token;
+  sessionStorage.setItem('authToken', token);
 };
 
 export const clearAuthToken = () => {
   authToken = null;
+  sessionStorage.removeItem('authToken');
 };
+
+export const getAuthToken = () => authToken;
 
 const getHeaders = () => {
   const headers: HeadersInit = {
@@ -76,7 +80,7 @@ export const coursesAPI = {
     return response.json();
   },
 
-  create: async (courseData: { name: string; course_date?: string; course_time?: string; leader?: string; visible?: number }): Promise<Course> => {
+  create: async (courseData: { name: string; course_date?: string; course_time?: string; leader?: string; visible?: number; language?: string }): Promise<Course> => {
     const response = await fetch(`${API_BASE_URL}/courses`, {
       method: 'POST',
       headers: getHeaders(),
@@ -86,7 +90,7 @@ export const coursesAPI = {
     return response.json();
   },
 
-  update: async (id: number, courseData: { name: string; course_date?: string; course_time?: string; leader?: string; visible?: number }): Promise<Course> => {
+  update: async (id: number, courseData: { name: string; course_date?: string; course_time?: string; leader?: string; visible?: number; language?: string }): Promise<Course> => {
     const response = await fetch(`${API_BASE_URL}/courses/${id}`, {
       method: 'PUT',
       headers: getHeaders(),
@@ -191,11 +195,13 @@ export const scheduleAPI = {
     course_date: string;
     course_time?: string;
     course_name: string;
+    course_name_zh?: string;
+    course_name_en?: string;
     leader?: string;
     visible?: number;
     is_manual?: number;
     course_id?: number;
-  }): Promise<Schedule> => {
+  }): Promise<{ id: number }> => {
     const response = await fetch(`${API_BASE_URL}/schedule`, {
       method: 'POST',
       headers: getHeaders(),
@@ -209,10 +215,12 @@ export const scheduleAPI = {
     course_date: string;
     course_time?: string;
     course_name: string;
+    course_name_zh?: string;
+    course_name_en?: string;
     leader?: string;
     visible?: number;
     is_manual?: number;
-  }): Promise<Schedule> => {
+  }): Promise<{ success: boolean }> => {
     const response = await fetch(`${API_BASE_URL}/schedule/${id}`, {
       method: 'PUT',
       headers: getHeaders(),
@@ -254,6 +262,48 @@ export const scheduleAPI = {
       headers: getHeaders(),
     });
     if (!response.ok) throw new Error('Failed to sync from courses');
+    return response.json();
+  },
+};
+
+// Translation API
+export const translateAPI = {
+  checkHealth: async (): Promise<TranslationHealth> => {
+    const response = await fetch(`${API_BASE_URL}/translate/health`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      return { healthy: false, error: 'api_error' };
+    }
+    return response.json();
+  },
+
+  translate: async (paragraph: string): Promise<TranslationResult> => {
+    const response = await fetch(`${API_BASE_URL}/translate`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ paragraph }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error((error as any).error || 'Translation failed');
+    }
+    return response.json();
+  },
+
+  saveTranslation: async (
+    courseId: number,
+    type: 'course_name' | 'verse_content' | 'verse_explanation' | 'study_content' | 'reference_text',
+    translatedText: string,
+    targetLang: 'zh' | 'en',
+    itemId?: number
+  ): Promise<{ success: boolean }> => {
+    const response = await fetch(`${API_BASE_URL}/translate/save`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ courseId, type, itemId, translatedText, targetLang }),
+    });
+    if (!response.ok) throw new Error('Failed to save translation');
     return response.json();
   },
 };
