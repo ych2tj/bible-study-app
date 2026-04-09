@@ -32,7 +32,6 @@ Thumbs.db
 *.tmp
 .cache/
 screenshots/
-images/
 frontend/db/
 
 # Cloudflare Workers (not used in master/local deployment)
